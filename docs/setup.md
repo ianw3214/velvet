@@ -4,6 +4,7 @@
 
 - [visual studio](https://visualstudio.microsoft.com/)
 - [git](https://git-scm.com/)
+- [cmake](https://cmake.org/)
 
 
 2. Clone the llvm source repository
