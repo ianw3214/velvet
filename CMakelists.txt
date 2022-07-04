@@ -10,7 +10,10 @@ include_directories(${LLVM_INCLUDE_DIRS})
 separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
 add_definitions(${LLVM_DEFINITIONS_LIST})
 
-add_executable(Maple source/main.cpp)
+add_executable(Maple)
+
+target_include_directories(Maple PRIVATE source)
+add_subdirectory(source)
 
 # Find the libraries that correspond to the LLVM components
 # that we wish to use

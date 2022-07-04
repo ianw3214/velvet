@@ -1,0 +1,4 @@
+add_subdirectory(lexer)
+add_subdirectory(symbol)
+
+target_sources(Maple PRIVATE main.cpp common.h)
