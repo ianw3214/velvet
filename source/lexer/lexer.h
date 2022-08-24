@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include<sstream>
+#include <sstream>
 #include <fstream>
 
 /** Read file into string. */
@@ -18,11 +18,6 @@ inline std::string slurp(const std::string& path) {
 }
 
 namespace Lexer {
-	struct Lexeme {
-		Token token;
-		std::string symbol;
-	};
-
 	void Initialize();
 	void LoadString(const std::string& string);
 	Lexeme getLexeme();

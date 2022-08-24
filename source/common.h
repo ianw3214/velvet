@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 enum class Token {
     INVALID = -1,
 
@@ -18,4 +20,9 @@ enum class Token {
     RELOP,
 
     TOKEN_EOF
+};
+
+struct Lexeme {
+    Token token;
+    std::string symbol;
 };

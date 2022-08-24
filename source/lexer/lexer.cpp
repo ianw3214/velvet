@@ -78,7 +78,7 @@ void Lexer::LoadString(const std::string& string) {
     curr_index = 0;
 }
 
-Lexer::Lexeme Lexer::getLexeme() {
+Lexeme Lexer::getLexeme() {
     int curr_state = 0;
     int last_accepting = -1;
     int last_accepting_index = -1;

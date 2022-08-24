@@ -1,7 +1,9 @@
 #include <iostream>
 #include "llvm/IR/LLVMContext.h"
 
+#include "common.h"
 #include "lexer/lexer.h"
+#include "parser/parser.h"
 
 int main() {
     llvm::LLVMContext context;
@@ -9,9 +11,27 @@ int main() {
 
     Lexer::Initialize();
 
-    Lexer::LoadString("if something 135 then something else something");
+    // Lexer::LoadString("if something 135 then something else something");
+    Lexer::LoadString("test > 15 <> 100 = 1000");
 
-    Lexer::Lexeme lexeme = Lexer::getLexeme();
+    auto getTokenCallback = []() {
+        Lexeme next = Lexer::getLexeme();
+        while (next.token == Token::WHITESPACE) {
+            next = Lexer::getLexeme();
+        }
+        // hard coded lmao
+        if (next.symbol == "<" || next.symbol == "<=" || next.symbol == "="
+            || next.symbol == "<>" || next.symbol == ">" || next.symbol == ">=") 
+        {
+            next.token = Token::RELOP;
+        }
+        return next;
+    };
+
+    Parser::Parse(getTokenCallback);
+
+    /*
+    Lexeme lexeme = Lexer::getLexeme();
     
     while (lexeme.token != Token::TOKEN_EOF && lexeme.token != Token::INVALID) {
         if (lexeme.token == Token::INVALID) {
@@ -39,6 +59,7 @@ int main() {
         std::cout << ": " << lexeme.symbol << std::endl;
         lexeme = Lexer::getLexeme();
     }
+    */
 
     return 0;
 };

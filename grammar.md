@@ -12,3 +12,11 @@
 | <> | **RELOP** | **NE** |
 | > | **RELOP** | **GT** |
 | >= | **RELOP** | **GE** |
+
+expr -> expr op term  
+  | term  
+term -> id | num | ( expr )
+
+expr -> term expr'  
+expr' -> op expr expr' | **empty**  
+term -> id | num | ( expr )
