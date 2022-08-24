@@ -66,5 +66,10 @@ Lexeme Lexer::getLexeme() {
     result.symbol = currString.substr(curr_index, size);
     result.token = token;
     curr_index = lookahead;
+
+    if (result.token == Token::WHITESPACE) {
+        result = Lexer::getLexeme();
+    }
+
     return result;
 }

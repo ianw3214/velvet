@@ -5,9 +5,9 @@
 #include <functional>
 
 namespace Parser {
-	void Parse(std::function<Lexeme()> getTokenCallback);
+	void Parse();
 
-    void ParseExpr(std::function<Lexeme()> getTokenCallback);
-    void ParseExprPost(std::function<Lexeme()> getTokenCallback);
-    void ParseTerm(std::function<Lexeme()> getTokenCallback);
+    void ParseExpr();
+    void ParseExprPost();
+    void ParseTerm();
 }

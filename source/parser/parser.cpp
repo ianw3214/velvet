@@ -1,33 +1,33 @@
 #include "parser.h"
 
-#pragma optimize("", off)
-
 #include <iostream>
 
-void Parser::Parse(std::function<Lexeme()> getTokenCallback) {
-    ParseExpr(getTokenCallback);
+#include "lexer/lexer.h"
+
+void Parser::Parse() {
+    ParseExpr();
 }
 
-void Parser::ParseExpr(std::function<Lexeme()> getTokenCallback) {
-    ParseTerm(getTokenCallback);
-    ParseExprPost(getTokenCallback);
+void Parser::ParseExpr() {
+    ParseTerm();
+    ParseExprPost();
 }
 
-void Parser::ParseExprPost(std::function<Lexeme()> getTokenCallback){
-    Lexeme lexeme = getTokenCallback();
+void Parser::ParseExprPost(){
+    Lexeme lexeme = Lexer::getLexeme();
     if (lexeme.token == Token::RELOP) {
         std::cout << "RELOP: " << lexeme.symbol << '\n';
-        ParseExpr(getTokenCallback);
-        ParseExprPost(getTokenCallback);
+        ParseExpr();
+        ParseExprPost();
     }
 }
 
-void Parser::ParseTerm(std::function<Lexeme()> getTokenCallback){
-    Lexeme lexeme = getTokenCallback();
+void Parser::ParseTerm(){
+    Lexeme lexeme = Lexer::getLexeme();
     if (lexeme.token == Token::ID) {
         if (lexeme.symbol == "(") {
-            ParseExpr(getTokenCallback);
-            lexeme = getTokenCallback();
+            ParseExpr();
+            lexeme = Lexer::getLexeme();
             if (lexeme.symbol != ")") {
                 std::cout << "ERROR! Expected ')'\n";
             }
