@@ -13,10 +13,28 @@
 | > | **RELOP** | **GT** |
 | >= | **RELOP** | **GE** |
 
-expr -> expr op term  
-  | term  
-term -> id | num | ( expr )
+- expr
+  - expr op term  
+  - if expr then expr
+  - if expr then expr else expr
+  - term
+- term
+  - id
+  - num
+  - ( expr )
 
-expr -> term expr'  
-expr' -> op expr expr' | **empty**  
-term -> id | num | ( expr )
+
+
+
+
+- expr
+  - term expr'  
+  - if expr then expr  
+  - if expr then expr else expr  
+- expr'
+  - op expr expr'  
+  - **empty**  
+- term
+  - id 
+  - num 
+  - ( expr )

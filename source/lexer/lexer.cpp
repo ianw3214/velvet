@@ -1,9 +1,17 @@
 #include "lexer.h"
 
+#include <unordered_map>
+
 namespace {
     // Current string being analyzed
     std::string currString;
     int curr_index = 0;
+
+    std::unordered_map<std::string, Token> keywords = {
+        { "if", Token::IF },
+        { "then", Token::THEN },
+        { "else", Token::ELSE }
+    };
 }
 
 void Lexer::LoadString(const std::string& string) {
@@ -69,6 +77,13 @@ Lexeme Lexer::getLexeme() {
 
     if (result.token == Token::WHITESPACE) {
         result = Lexer::getLexeme();
+    }
+
+    if (result.token == Token::ID) {
+        auto entry = keywords.find(result.symbol);
+        if (entry != keywords.end()) {
+            result.token = entry->second;
+        }
     }
 
     return result;

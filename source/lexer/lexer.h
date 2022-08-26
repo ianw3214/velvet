@@ -3,8 +3,6 @@
 #include "common.h"
 
 #include <string>
-#include <unordered_map>
-#include <vector>
 
 #include <sstream>
 #include <fstream>

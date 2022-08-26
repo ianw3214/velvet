@@ -13,6 +13,8 @@ void Parser::ParseExpr() {
     ParseExprPost();
 }
 
+// This is a bug? Need to peek token and only consume if it is relop
+//  otherwise, for empty string case no tokens should be consumed
 void Parser::ParseExprPost(){
     Lexeme lexeme = Lexer::getLexeme();
     if (lexeme.token == Token::RELOP) {
