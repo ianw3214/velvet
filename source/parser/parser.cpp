@@ -13,11 +13,10 @@ void Parser::ParseExpr() {
     ParseExprPost();
 }
 
-// This is a bug? Need to peek token and only consume if it is relop
-//  otherwise, for empty string case no tokens should be consumed
 void Parser::ParseExprPost(){
-    Lexeme lexeme = Lexer::getLexeme();
+    Lexeme lexeme = Lexer::peekLexeme();
     if (lexeme.token == Token::RELOP) {
+        Lexer::getLexeme();
         std::cout << "RELOP: " << lexeme.symbol << '\n';
         ParseExpr();
         ParseExprPost();
