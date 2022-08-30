@@ -11,7 +11,8 @@ int main() {
 
     // Lexer::LoadString("if something 135 then something else something");
     // Lexer::LoadString("a > test <> 100 = 1000");
-    Lexer::LoadString("( a > test ) <> ( 100 = 1000 )");
+    // Lexer::LoadString("( a > test ) <> ( 100 = 1000 )");
+    Lexer::LoadString("if a then if x then y else c");
 
     Parser::Parse();
 

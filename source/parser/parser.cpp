@@ -9,8 +9,28 @@ void Parser::Parse() {
 }
 
 void Parser::ParseExpr() {
-    ParseTerm();
-    ParseExprPost();
+    Lexeme lexeme = Lexer::peekLexeme();
+    if (lexeme.token == Token::IF) {
+        Lexer::getLexeme();
+        std::cout << "IF\n";
+        ParseExpr();
+        lexeme = Lexer::getLexeme();
+        if (lexeme.token != Token::THEN) {
+            std::cout << "ERROR! Expected 'then'\n";
+        }
+        std::cout << "THEN\n";
+        ParseExpr();
+        lexeme = Lexer::peekLexeme();
+        if (lexeme.token == Token::ELSE) {
+            std::cout << "ELSE\n";
+            Lexer::getLexeme();
+            ParseExpr();
+        }
+    }
+    else {
+        ParseTerm();
+        ParseExprPost();
+    }
 }
 
 void Parser::ParseExprPost(){

@@ -81,10 +81,11 @@ Lexeme Lexer::peekLexeme() {
     result.token = new_lookahead.second;
 
     if (result.token == Token::WHITESPACE) {
+        int token_start = new_lookahead.first;
         new_lookahead = _advanceLookahead(new_lookahead.first);
 
-        size_t size = static_cast<size_t>(new_lookahead.first - curr_index);
-        result.symbol = currString.substr(curr_index, size);
+        size_t size = static_cast<size_t>(new_lookahead.first - token_start);
+        result.symbol = currString.substr(token_start, size);
         result.token = new_lookahead.second;
     }
 
