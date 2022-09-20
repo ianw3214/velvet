@@ -1,5 +1,6 @@
 add_subdirectory(lexer)
 add_subdirectory(symbol)
 add_subdirectory(parser)
+add_subdirectory(AST)
 
 target_sources(Maple PRIVATE main.cpp common.h)

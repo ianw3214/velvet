@@ -1,13 +1,14 @@
 #pragma once
 
 #include "common.h"
+#include "AST/AST.h"
 
 #include <functional>
 
 namespace Parser {
-	void Parse();
+	ASTNode* Parse();
 
-    void ParseExpr();
-    void ParseExprPost();
-    void ParseTerm();
+    ASTNode* ParseExpr();
+    ASTNode* ParseExprPost(ASTNode * left);
+    ASTNode* ParseTerm();
 }

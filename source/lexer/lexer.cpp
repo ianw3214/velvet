@@ -2,7 +2,7 @@
 
 #include <unordered_map>
 #include <utility>
-
+    
 namespace {
     // Current string being analyzed
     std::string currString;
