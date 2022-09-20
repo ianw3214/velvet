@@ -30,6 +30,15 @@ public:
     IfExpressionNode(ASTNode* cond, ASTNode* then, ASTNode* els) : mConditionNode(cond), mThenNode(then), mElseNode(els) {}
 };
 
+class RelationalOperatorNode : public ASTNode {
+public:
+    ASTNode* mLeft;
+    ASTNode* mRight;
+    Token mOperator;
+
+    RelationalOperatorNode(ASTNode* left, ASTNode* right, Token op) : mLeft(left), mRight(right), mOperator(op) {}
+};
+
 class BinaryOperatorNode : public ASTNode {
 public:
     ASTNode* mLeft;

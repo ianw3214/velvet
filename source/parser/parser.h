@@ -9,6 +9,9 @@ namespace Parser {
 	ASTNode* Parse();
 
     ASTNode* ParseExpr();
-    ASTNode* ParseExprPost(ASTNode * left);
+    ASTNode* ParseIfExpr();
+    ASTNode* ParseRelExpr();
+    ASTNode* ParseBinExpr();
+    ASTNode* ParseBinExprRHS(ASTNode* left);
     ASTNode* ParseTerm();
 }

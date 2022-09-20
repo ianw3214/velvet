@@ -28,17 +28,63 @@ std::pair<int, Token> _advanceLookahead(int lookahead) {
         }
         token = Token::WHITESPACE;
     } break;
+    case '(': {
+        lookahead_char = currString[++lookahead];
+        token = Token::LEFT_BRACKET;
+    } break;
+    case ')': {
+        lookahead_char = currString[++lookahead];
+        token = Token::RIGHT_BRACKET;
+    } break;
+    case '+': {
+        lookahead_char = currString[++lookahead];
+        token = Token::PLUS;
+    } break;
+    case '-': {
+        lookahead_char = currString[++lookahead];
+        token = Token::MINUS;
+    } break;
+    case '*': {
+        lookahead_char = currString[++lookahead];
+        token = Token::MULTIPLY;
+    } break;
+    case '/': {
+        lookahead_char = currString[++lookahead];
+        token = Token::DIVIDE;
+    } break;
     case '<':
-    case '>':
-    case '=':
     {
         lookahead_char = currString[++lookahead];
         if (lookahead < currString.size()) {
-            if (lookahead_char == '=' || lookahead_char == '>' || lookahead_char == '<') {
+            if (lookahead_char == '=') {
                 lookahead++;
+                token = Token::LESS_EQ;
+                break;
+            }
+            if (lookahead_char == '>') {
+                lookahead++;
+                token = Token::NOT_EQUALS;
+                break;
             }
         }
-        token = Token::RELOP;
+        token = Token::LESS;
+    } break;
+    case '>':
+    {
+        lookahead_char = currString[++lookahead];
+        if (lookahead < currString.size()) {
+            if (lookahead_char == '=') {
+                lookahead++;
+                token = Token::GREATER_EQ;
+                break;
+            }
+        }
+        token = Token::GREATER;
+    } break;
+    case '=':
+    {
+        lookahead_char = currString[++lookahead];
+        token = Token::EQUALS;
     } break;
     case '0':
     case '1':

@@ -16,8 +16,23 @@ enum class Token {
     ID,
     NUM,
 
-    // operators
-    RELOP,
+    // binary operators
+    PLUS,
+    MINUS,
+    MULTIPLY,
+    DIVIDE,
+
+    // relational operators
+    GREATER,
+    GREATER_EQ,
+    LESS,
+    LESS_EQ,
+    EQUALS,
+    NOT_EQUALS,
+
+    // misc tokens
+    LEFT_BRACKET,
+    RIGHT_BRACKET,
 
     TOKEN_EOF
 };
