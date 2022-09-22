@@ -32,3 +32,17 @@
 6. test your installation by opening up a new command line and typing in:
 
 > clang-cl help
+
+# Catch2 setup
+
+Using vcpkg, make sure to install the 64 bit version if necessary
+
+> vcpkg install Catch2:x64-windows
+
+# Cmake build
+
+When generating cmake build with vcpkg packages, make sure to use the correct build args
+
+> cmake .. -DCMAKE_TOOLCHAIN_FILE=D:/vcpkg/scripts/buildsystems/vcpkg.cmake
+
+When using visual studio, make sure to switch off of the `Debug` configuration otherwise builds might not work
