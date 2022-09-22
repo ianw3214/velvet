@@ -11,11 +11,11 @@ int main() {
     llvm::LLVMContext context;
     std::cout << &context << std::endl;
 
-    // Lexer::LoadString("if something 135 then something else something");
-    // Lexer::LoadString("a > test <> 100 = 1000");
-    // Lexer::LoadString("( a > test ) <> ( 100 = 1000 )");
-    // Lexer::LoadString("if a then if x then y else c");
-    Lexer::LoadString("if a then if x then y - 30 else c + 100");
+    // Lexer::LoadInputString("if something 135 then something else something");
+    // Lexer::LoadInputString("a > test <> 100 = 1000");
+    // Lexer::LoadInputString("( a > test ) <> ( 100 = 1000 )");
+    // Lexer::LoadInputString("if a then if x then y else c");
+    Lexer::LoadInputString("if a then if x then y - 30 else c + 100");
 
     ASTNode * base = Parser::Parse();
 

@@ -13,6 +13,12 @@ namespace {
         { "then", Token::THEN },
         { "else", Token::ELSE }
     };
+
+    inline bool _isAlphaNumerical(char c) {
+        return (c >= 'a' && c <= 'z') ||
+            (c >= 'A' && c <= 'Z') ||
+            (c >= '0' && c <= '9');
+    }
 }
 
 std::pair<int, Token> _advanceLookahead(int lookahead) {
@@ -104,7 +110,7 @@ std::pair<int, Token> _advanceLookahead(int lookahead) {
     } break;
     default:
     {
-        while ((lookahead_char != ' ' && lookahead_char != '\t' && lookahead_char != '\n') && lookahead < currString.size()) {
+        while (_isAlphaNumerical(lookahead_char) && lookahead < currString.size()) {
             lookahead_char = currString[++lookahead];
         }
         token = Token::ID;
@@ -113,7 +119,7 @@ std::pair<int, Token> _advanceLookahead(int lookahead) {
     return std::make_pair<>(lookahead, token);
 }
 
-void Lexer::LoadString(const std::string& string) {
+void Lexer::LoadInputString(const std::string& string) {
     currString = string;
     curr_index = 0;
 }
