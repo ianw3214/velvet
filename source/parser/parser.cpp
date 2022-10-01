@@ -21,7 +21,86 @@ namespace {
 }
 
 ASTNode* Parser::Parse() {
-    return ParseExpr();
+    return ParseStatementList();
+    // return ParseExpr();
+}
+
+ASTNode* Parser::ParseStatementList() {
+    ASTNode* statement = ParseStatement();
+    ASTNode* statement_opt = nullptr;
+    Lexeme lexeme = Lexer::peekLexeme();
+    if (lexeme.token == Token::VAR_DECL || lexeme.token == Token::ID) {
+        statement_opt = ParseStatementList();
+    }
+    std::vector<ASTNode*> statements;
+    statements.push_back(statement);
+    if (StatementListNode* list = dynamic_cast<StatementListNode*>(statement_opt)) {
+        statements.insert(statements.end(), list->mStatements.begin(), list->mStatements.end());
+    }
+    return new StatementListNode(std::move(statements));
+}
+
+ASTNode* Parser::ParseStatement() {
+    Lexeme lexeme = Lexer::peekLexeme();
+    if (lexeme.token == Token::VAR_DECL) {
+        return ParseDeclarationStmt();
+    }
+    if (lexeme.token == Token::ID) {
+        return ParseAssignmentStmt();
+    }
+    std::cout << "Error! Expected valid statement\n";
+    return nullptr;
+}
+
+ASTNode* Parser::ParseDeclarationStmt() {
+    Lexeme lexeme = Lexer::getLexeme();
+    if (lexeme.token != Token::VAR_DECL) {
+        std::cout << "Error! Expected variable declaration (var)\n";
+    }
+    lexeme = Lexer::getLexeme();
+    if (lexeme.token != Token::ID) {
+        std::cout << "Error! Expected id token\n";
+    }
+    std::string identifier = lexeme.symbol;
+    lexeme = Lexer::getLexeme();
+    if (lexeme.token != Token::TYPE_DECL) {
+        std::cout << "Error! Expected type declaration ($)\n";
+    }
+    lexeme = Lexer::getLexeme();
+    if (lexeme.token != Token::ID) {
+        std::cout << "Error! Expected type name id token\n";
+    }
+    std::string type = lexeme.symbol;
+    // optional assignment after var declaration
+    ASTNode* opt_assign = nullptr;
+    lexeme = Lexer::peekLexeme();
+    if (lexeme.token == Token::ASSIGNMENT) {
+        Lexer::getLexeme();
+        opt_assign = ParseExpr();
+    }
+    lexeme = Lexer::getLexeme();
+    if (lexeme.token != Token::STATEMENT_END) {
+        std::cout << "Error! Expected end of statement token (;)\n";
+    }
+    return new DeclarationStatementNode(identifier, type, opt_assign);
+}
+
+ASTNode* Parser::ParseAssignmentStmt() {
+    Lexeme lexeme = Lexer::getLexeme();
+    if (lexeme.token != Token::ID) {
+        std::cout << "ERROR! Expected id token\n";
+    }
+    std::string identifier = lexeme.symbol;
+    lexeme = Lexer::getLexeme();
+    if (lexeme.token != Token::ASSIGNMENT) {
+        std::cout << "ERROR! Expected assignment operator (:=) \n";
+    }
+    ASTNode* expr = ParseExpr();
+    lexeme = Lexer::getLexeme();
+    if (lexeme.token != Token::STATEMENT_END) {
+        std::cout << "Error! Expected end of statement token (;)\n";
+    }
+    return new AssignmentStatementNode(identifier, expr);
 }
 
 ASTNode* Parser::ParseExpr() {

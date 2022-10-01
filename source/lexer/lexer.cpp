@@ -23,6 +23,9 @@ namespace {
 
 std::pair<int, Token> _advanceLookahead(int lookahead) {
     Token token = Token::INVALID;
+    if (lookahead == currString.size()) {
+        return std::make_pair<>(lookahead, Token::TOKEN_EOF);
+    }
     char lookahead_char = currString[lookahead];
     switch (lookahead_char) {
     case ' ':
@@ -33,6 +36,24 @@ std::pair<int, Token> _advanceLookahead(int lookahead) {
             lookahead_char = currString[++lookahead];
         }
         token = Token::WHITESPACE;
+    } break;
+    case ';': {
+        lookahead_char = currString[++lookahead];
+        token = Token::STATEMENT_END;
+    } break;
+    case ':': {
+        lookahead_char = currString[++lookahead];
+        if (lookahead < currString.size()) {
+            if (lookahead_char == '=') {
+                lookahead++;
+                token = Token::ASSIGNMENT;
+                break;
+            }
+        }
+    } break;
+    case '$': {
+        lookahead_char = currString[++lookahead];
+        token = Token::TYPE_DECL;
     } break;
     case '(': {
         lookahead_char = currString[++lookahead];
@@ -108,6 +129,19 @@ std::pair<int, Token> _advanceLookahead(int lookahead) {
         }
         token = Token::NUM;
     } break;
+    case 'v': {
+        lookahead_char = currString[++lookahead];
+        if (lookahead < currString.size()) {
+            if (lookahead_char == 'a') {
+                lookahead_char = currString[++lookahead];
+                if (lookahead_char == 'r') {
+                    lookahead_char = currString[++lookahead];
+                    token = Token::VAR_DECL;
+                    break;
+                }
+            }
+        }
+    } // don't break here
     default:
     {
         while (_isAlphaNumerical(lookahead_char) && lookahead < currString.size()) {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 class ASTNode {
 public:
@@ -46,4 +47,28 @@ public:
     Token mOperator;
 
     BinaryOperatorNode(ASTNode* left, ASTNode* right, Token op) : mLeft(left), mRight(right), mOperator(op) {}
+};
+
+class DeclarationStatementNode : public ASTNode {
+public:
+    std::string mIdentifier;
+    std::string mType;
+    ASTNode* mExpression;
+
+    DeclarationStatementNode(const std::string id, const std::string type, ASTNode* expr) : mIdentifier(id), mType(type), mExpression(expr) {}
+};
+
+class AssignmentStatementNode : public ASTNode {
+public:
+    std::string mIdentifier;
+    ASTNode* mExpression;
+
+    AssignmentStatementNode(const std::string& id, ASTNode* expr) : mIdentifier(id), mExpression(expr) {}
+};
+
+class StatementListNode : public ASTNode {
+public:
+    std::vector<ASTNode*> mStatements;
+
+    StatementListNode(std::vector<ASTNode*>&& statements) : mStatements(statements) {}
 };

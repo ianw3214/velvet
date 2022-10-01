@@ -8,6 +8,10 @@
 namespace Parser {
 	ASTNode* Parse();
 
+    ASTNode* ParseStatementList();
+    ASTNode* ParseStatement();
+    ASTNode* ParseDeclarationStmt();
+    ASTNode* ParseAssignmentStmt();
     ASTNode* ParseExpr();
     ASTNode* ParseIfExpr();
     ASTNode* ParseRelExpr();

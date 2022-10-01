@@ -7,6 +7,11 @@ enum class Token {
 
     WHITESPACE,
 
+    // declaration/assignment
+    VAR_DECL,
+    TYPE_DECL,
+    ASSIGNMENT,
+
     // keywords
     IF,
     THEN,
@@ -33,6 +38,7 @@ enum class Token {
     // misc tokens
     LEFT_BRACKET,
     RIGHT_BRACKET,
+    STATEMENT_END,
 
     TOKEN_EOF
 };

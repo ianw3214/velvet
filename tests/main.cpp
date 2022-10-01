@@ -27,3 +27,7 @@ TEST_CASE("Binary operators with brackets lexes correctly", "[lexer]") {
 TEST_CASE("If statement lexes correctly", "[lexer]") {
 	_verifyInputStringGeneratesTokens("if cond then expr1 else expr2", { Token::IF, Token::ID, Token::THEN, Token::ID, Token::ELSE, Token::ID });
 }
+
+TEST_CASE("Variable declaration statement lexes correctly", "[lexer") {
+	_verifyInputStringGeneratesTokens("var test $ type := something", { Token::VAR_DECL, Token::ID, Token::TYPE_DECL, Token::ID, Token::ASSIGNMENT, Token::ID });
+}

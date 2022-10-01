@@ -15,7 +15,8 @@ int main() {
     // Lexer::LoadInputString("a > test <> 100 = 1000");
     // Lexer::LoadInputString("( a > test ) <> ( 100 = 1000 )");
     // Lexer::LoadInputString("if a then if x then y else c");
-    Lexer::LoadInputString("if a then if x then y - 30 else c + 100");
+    // Lexer::LoadInputString("if a then if x then y - 30 else c + 100");
+    Lexer::LoadInputString("var test $ type; test := a - b + 1000;");
 
     ASTNode * base = Parser::Parse();
 
@@ -46,6 +47,20 @@ int main() {
             std::cout << "VISITED REL OPERATOR NODE: " << "binOp->mOperator" << '\n';
             stack.push_back(binOp->mRight);
             stack.push_back(binOp->mLeft);
+        }
+        if (AssignmentStatementNode* assignStmt = dynamic_cast<AssignmentStatementNode*>(top)) {
+            std::cout << "VISITED ASSIGNMENT STATEMENT NODE: " << assignStmt->mIdentifier << '\n';
+            stack.push_back(assignStmt->mExpression);
+        }
+        if (DeclarationStatementNode* declStmt = dynamic_cast<DeclarationStatementNode*>(top)) {
+            std::cout << "VISITED DECLARATION STATEMENT NODE: " << declStmt->mIdentifier << "(type: " << declStmt->mType << ")\n";
+            stack.push_back(declStmt->mExpression);
+        }
+        if (StatementListNode* stmtList = dynamic_cast<StatementListNode*>(top)) {
+            std::cout << "VISITED STATEMENT LIST OF SIZE " << stmtList->mStatements.size() << '\n';
+            for (ASTNode* node : stmtList->mStatements) {
+                stack.push_back(node);
+            }
         }
     }
 

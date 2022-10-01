@@ -1,5 +1,16 @@
 ## Grammar
 
+- stmt_list
+  - statement
+  - stmt_list statement
+- statement
+  - decl_stmt
+  - assign_stmt
+- decl_stmt
+  - 'var' id '$' id ';'
+  - 'var' id '$' id ':=' expr ';'
+- assign_stmt
+  - id ':=' expr ';'
 - expr
   - if_expr
   - rel_expr
@@ -31,6 +42,17 @@
 
 ## Translated
 
+- stmt_list
+  - statement
+  - stmt_list statement
+- statement
+  - decl_stmt
+  - assign_stmt
+- decl_stmt
+  - id '$' id ';'
+  - id '$' id ':=' expr ';'
+- assign_stmt
+  - id ':=' expr ';'
 - expr
   - if_expr
   - rel_expr
