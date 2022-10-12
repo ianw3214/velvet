@@ -11,7 +11,9 @@ namespace {
     std::unordered_map<std::string, Token> keywords = {
         { "if", Token::IF },
         { "then", Token::THEN },
-        { "else", Token::ELSE }
+        { "else", Token::ELSE },
+        { "var", Token::VAR_DECL },
+        { "fn", Token::FN_DECL }
     };
 
     inline bool _isAlphaNumerical(char c) {
@@ -62,6 +64,14 @@ std::pair<int, Token> _advanceLookahead(int lookahead) {
     case ')': {
         lookahead_char = currString[++lookahead];
         token = Token::RIGHT_BRACKET;
+    } break;
+    case '{': {
+        lookahead_char = currString[++lookahead];
+        token = Token::LEFT_CURLY_BRACKET;
+    } break;
+    case '}': {
+        lookahead_char = currString[++lookahead];
+        token = Token::RIGHT_CURLY_BRACKET;
     } break;
     case '+': {
         lookahead_char = currString[++lookahead];
@@ -129,19 +139,6 @@ std::pair<int, Token> _advanceLookahead(int lookahead) {
         }
         token = Token::NUM;
     } break;
-    case 'v': {
-        lookahead_char = currString[++lookahead];
-        if (lookahead < currString.size()) {
-            if (lookahead_char == 'a') {
-                lookahead_char = currString[++lookahead];
-                if (lookahead_char == 'r') {
-                    lookahead_char = currString[++lookahead];
-                    token = Token::VAR_DECL;
-                    break;
-                }
-            }
-        }
-    } // don't break here
     default:
     {
         while (_isAlphaNumerical(lookahead_char) && lookahead < currString.size()) {

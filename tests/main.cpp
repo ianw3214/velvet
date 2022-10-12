@@ -28,6 +28,14 @@ TEST_CASE("If statement lexes correctly", "[lexer]") {
 	_verifyInputStringGeneratesTokens("if cond then expr1 else expr2", { Token::IF, Token::ID, Token::THEN, Token::ID, Token::ELSE, Token::ID });
 }
 
-TEST_CASE("Variable declaration statement lexes correctly", "[lexer") {
+TEST_CASE("Variable declaration statement lexes correctly", "[lexer]") {
 	_verifyInputStringGeneratesTokens("var test $ type := something", { Token::VAR_DECL, Token::ID, Token::TYPE_DECL, Token::ID, Token::ASSIGNMENT, Token::ID });
+}
+
+TEST_CASE("Statement list with seperators lexes correctly", "[lexer]") {
+	_verifyInputStringGeneratesTokens("var test $ type; test := expr;", { Token::VAR_DECL, Token::ID, Token::TYPE_DECL, Token::ID, Token::STATEMENT_END, Token::ID, Token::ASSIGNMENT, Token::ID, Token::STATEMENT_END });
+}
+
+TEST_CASE("Function declaration with block lexes correctly", "[lexer]") {
+	_verifyInputStringGeneratesTokens("fn foo() {}", { Token::FN_DECL, Token::ID, Token::LEFT_BRACKET, Token::RIGHT_BRACKET, Token::LEFT_CURLY_BRACKET, Token::RIGHT_CURLY_BRACKET });
 }

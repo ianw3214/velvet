@@ -10,6 +10,7 @@ enum class Token {
     // declaration/assignment
     VAR_DECL,
     TYPE_DECL,
+    FN_DECL,
     ASSIGNMENT,
 
     // keywords
@@ -39,6 +40,8 @@ enum class Token {
     LEFT_BRACKET,
     RIGHT_BRACKET,
     STATEMENT_END,
+    LEFT_CURLY_BRACKET,
+    RIGHT_CURLY_BRACKET,
 
     TOKEN_EOF
 };
