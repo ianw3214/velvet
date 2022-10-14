@@ -42,6 +42,7 @@ enum class Token {
     STATEMENT_END,
     LEFT_CURLY_BRACKET,
     RIGHT_CURLY_BRACKET,
+    FN_TYPE_RESULT,
 
     TOKEN_EOF
 };

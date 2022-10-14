@@ -4,16 +4,22 @@
   - statement
   - stmt_list statement
 - statement
-  - decl_stmt
+  - var_decl
+  - fn_decl
   - assign_stmt
-- decl_stmt
+- var_decl
   - 'var' id '$' id ';'
   - 'var' id '$' id ':=' expr ';'
+- fn_decl
+  - 'fn' id () '->' type block_expr
 - assign_stmt
   - id ':=' expr ';'
 - expr
+  - block_expr
   - if_expr
   - rel_expr
+- block_expr
+  - { stmt_list expr }
 - if_expr
   - if expr then expr
   - if expr then expr else expr
@@ -46,16 +52,22 @@
   - statement
   - stmt_list statement
 - statement
-  - decl_stmt
+  - var_decl
+  - fn_decl
   - assign_stmt
-- decl_stmt
+- var_decl
   - id '$' id ';'
   - id '$' id ':=' expr ';'
+- fn_decl
+  - 'fn' id () '->' type block_expr
 - assign_stmt
   - id ':=' expr ';'
 - expr
+  - block_expr
   - if_expr
   - rel_expr
+- block_expr
+  - { stmt_list expr }
 - if_expr
   - if expr then expr
   - if expr then expr else expr

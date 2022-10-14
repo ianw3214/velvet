@@ -22,6 +22,14 @@ public:
     NumberNode(const std::string& number) : mNumber(number) {}
 };
 
+class BlockExpressionNode : public ASTNode {
+public:
+    ASTNode* mStatementList;
+    ASTNode* mExprNode;
+
+    BlockExpressionNode(ASTNode* statementList, ASTNode* expr) : mStatementList(statementList), mExprNode(expr) {}
+};
+
 class IfExpressionNode : public ASTNode {
 public:
     ASTNode* mConditionNode;
@@ -49,13 +57,13 @@ public:
     BinaryOperatorNode(ASTNode* left, ASTNode* right, Token op) : mLeft(left), mRight(right), mOperator(op) {}
 };
 
-class DeclarationStatementNode : public ASTNode {
+class VariableDeclarationNode : public ASTNode {
 public:
     std::string mIdentifier;
     std::string mType;
     ASTNode* mExpression;
 
-    DeclarationStatementNode(const std::string id, const std::string type, ASTNode* expr) : mIdentifier(id), mType(type), mExpression(expr) {}
+    VariableDeclarationNode(const std::string id, const std::string type, ASTNode* expr) : mIdentifier(id), mType(type), mExpression(expr) {}
 };
 
 class AssignmentStatementNode : public ASTNode {
@@ -71,4 +79,13 @@ public:
     std::vector<ASTNode*> mStatements;
 
     StatementListNode(std::vector<ASTNode*>&& statements) : mStatements(statements) {}
+};
+
+class FunctionDeclNode : public ASTNode {
+public:
+    std::string mName;
+    std::string mType;
+    ASTNode* mBlockExpr;
+
+    FunctionDeclNode(const std::string& name, const std::string& type, ASTNode* blockExpr) : mName(name), mType(type), mBlockExpr(blockExpr) {}
 };

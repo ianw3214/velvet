@@ -79,6 +79,13 @@ std::pair<int, Token> _advanceLookahead(int lookahead) {
     } break;
     case '-': {
         lookahead_char = currString[++lookahead];
+        if (lookahead < currString.size()) {
+            if (lookahead_char == '>') {
+                lookahead++;
+                token = Token::FN_TYPE_RESULT;
+                break;
+            }
+        }
         token = Token::MINUS;
     } break;
     case '*': {
