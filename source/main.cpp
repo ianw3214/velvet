@@ -1,5 +1,4 @@
 #include <iostream>
-#include "llvm/IR/LLVMContext.h"
 
 #include <vector>
 
@@ -8,16 +7,13 @@
 #include "parser/parser.h"
 
 int main() {
-    llvm::LLVMContext context;
-    std::cout << &context << std::endl;
-
     // Lexer::LoadInputString("if something 135 then something else something");
     // Lexer::LoadInputString("a > test <> 100 = 1000");
     // Lexer::LoadInputString("( a > test ) <> ( 100 = 1000 )");
     // Lexer::LoadInputString("if a then if x then y else c");
     // Lexer::LoadInputString("if a then if x then y - 30 else c + 100");
     // Lexer::LoadInputString("var test $ type; test := a - b + 1000;");
-    Lexer::LoadInputString("fn test () -> type { var test $ type; test := a - b + 1000; if a then b else c };");
+    Lexer::LoadInputString("fn testfunc () -> type { var test $ type; test := a - b + 1000; if a then b else c };");
 
     ASTNode * base = Parser::Parse();
 
@@ -73,6 +69,10 @@ int main() {
             stack.push_back(blockExpr->mExprNode);
         }
     }
+
+    initLLVM();
+    base->Codegen();
+    printLLVM();
 
     return 0;
 };
