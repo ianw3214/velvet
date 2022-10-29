@@ -6,6 +6,7 @@
 
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/Verifier.h"
 
 static std::unique_ptr<llvm::LLVMContext> sContext;
 static std::unique_ptr<llvm::Module> sModule;
@@ -40,11 +41,54 @@ llvm::Value* NumberNode::Codegen() {
 }
 
 llvm::Value* BlockExpressionNode::Codegen() {
-	return nullptr;
+	mStatementList->Codegen();
+	return mExprNode->Codegen();
 }
 
 llvm::Value* IfExpressionNode::Codegen() {
-	return nullptr;
+	llvm::Value* condition = mConditionNode->Codegen();
+	if (!condition) {
+		return nullptr;
+	}
+	// TODO: Skip the compare to 0 since that's not necessary in this language
+	condition = sBuilder->CreateFCmpONE(condition, llvm::ConstantFP::get(*sContext, llvm::APFloat(0.0)), "ifcond");
+
+	llvm::Function* parentFunc = sBuilder->GetInsertBlock()->getParent();
+	llvm::BasicBlock* thenBasicBlock = llvm::BasicBlock::Create(*sContext, "then", parentFunc);
+	llvm::BasicBlock* elseBasicBlock = llvm::BasicBlock::Create(*sContext, "else");
+	llvm::BasicBlock* mergeBasicBlock = llvm::BasicBlock::Create(*sContext, "ifcont");
+	sBuilder->CreateCondBr(condition, thenBasicBlock, elseBasicBlock);
+
+	sBuilder->SetInsertPoint(thenBasicBlock);
+	llvm::Value* thenVal = mThenNode->Codegen();
+	if (!thenVal) {
+		return nullptr;
+	}
+	sBuilder->CreateBr(mergeBasicBlock);
+	thenBasicBlock = sBuilder->GetInsertBlock();
+
+	llvm::Value* elseVal = nullptr;
+	if (mElseNode) {
+		parentFunc->getBasicBlockList().push_back(elseBasicBlock);
+		sBuilder->SetInsertPoint(elseBasicBlock);
+
+		elseVal = mElseNode->Codegen();
+		if (!elseVal) {
+			return nullptr;
+		}
+		sBuilder->CreateBr(mergeBasicBlock);
+		elseBasicBlock = sBuilder->GetInsertBlock();
+	}
+
+	parentFunc->getBasicBlockList().push_back(mergeBasicBlock);
+	sBuilder->SetInsertPoint(mergeBasicBlock);
+	llvm::PHINode* phi = sBuilder->CreatePHI(llvm::Type::getDoubleTy(*sContext), 2, "iftmp");
+	phi->addIncoming(thenVal, thenBasicBlock);
+	if (elseVal) {
+		phi->addIncoming(elseVal, elseBasicBlock);
+	}
+
+	return phi;
 }
 
 llvm::Value* RelationalOperatorNode::Codegen() {
@@ -94,5 +138,21 @@ llvm::Value* StatementListNode::Codegen() {
 llvm::Value* FunctionDeclNode::Codegen() {
 	llvm::FunctionType* funcType = llvm::FunctionType::get(llvm::Type::getDoublePtrTy(*sContext), false);
 	llvm::Function* func = llvm::Function::Create(funcType, llvm::Function::ExternalLinkage, mName, sModule.get());
+
+	// Create basic block to start insertion into
+	llvm::BasicBlock* basicBlock = llvm::BasicBlock::Create(*sContext, "entry", func);
+	sBuilder->SetInsertPoint(basicBlock);
+
+	// TODO: Record function arguments in named values map
+
+	if (llvm::Value* value = mBlockExpr->Codegen()) {
+		sBuilder->CreateRet(value);
+
+		llvm::verifyFunction(*func);
+		return func;
+	}
+
+	// handle error
+	// func->eraseFromParent();
 	return nullptr;
 }
