@@ -27,6 +27,9 @@ ASTNode* Parser::Parse() {
 
 ASTNode* Parser::ParseStatementList() {
     ASTNode* statement = ParseStatement();
+    if (!statement) {
+        return nullptr;
+    }
     ASTNode* statement_opt = nullptr;
     Lexeme lexeme = Lexer::peekLexeme();
     if (lexeme.token == Token::VAR_DECL || lexeme.token == Token::ID) {
@@ -117,6 +120,7 @@ ASTNode* Parser::ParseVariableDeclaration() {
     lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::STATEMENT_END) {
         std::cout << "Error! Expected end of statement token (;)\n";
+        return nullptr;
     }
     return new VariableDeclarationNode(identifier, type, opt_assign);
 }
@@ -125,16 +129,19 @@ ASTNode* Parser::ParseAssignmentStmt() {
     Lexeme lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::ID) {
         std::cout << "ERROR! Expected id token\n";
+        return nullptr;
     }
     std::string identifier = lexeme.symbol;
     lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::ASSIGNMENT) {
         std::cout << "ERROR! Expected assignment operator (:=) \n";
+        return nullptr;
     }
     ASTNode* expr = ParseExpr();
     lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::STATEMENT_END) {
         std::cout << "Error! Expected end of statement token (;)\n";
+        return nullptr;
     }
     return new AssignmentStatementNode(identifier, expr);
 }
@@ -160,7 +167,12 @@ ASTNode* Parser::ParseBlockExpr() {
     if (lexeme.token != Token::LEFT_CURLY_BRACKET) {
         std::cout << "ERROR! Expected left curly bracket\n";
     }
+    // If we fail to find a statement, backtrack and parse an expression instead
+    Lexer::SetBacktrackPoint();
     ASTNode* statementList = ParseStatementList();
+    if (!statementList) {
+        Lexer::JumpToBacktrackPoint();
+    }
     ASTNode* expr = ParseExpr();
     lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::RIGHT_CURLY_BRACKET) {

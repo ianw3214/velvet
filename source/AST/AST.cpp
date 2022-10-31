@@ -41,7 +41,10 @@ llvm::Value* NumberNode::Codegen() {
 }
 
 llvm::Value* BlockExpressionNode::Codegen() {
-	mStatementList->Codegen();
+	// statement list could be empty if the block expression just contains 1 single expression
+	if (mStatementList) {
+		mStatementList->Codegen();
+	}
 	return mExprNode->Codegen();
 }
 

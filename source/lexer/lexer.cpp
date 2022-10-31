@@ -8,6 +8,8 @@ namespace {
     std::string currString;
     int curr_index = 0;
 
+    int backtrack_index = 0;
+
     std::unordered_map<std::string, Token> keywords = {
         { "if", Token::IF },
         { "then", Token::THEN },
@@ -210,4 +212,12 @@ Lexeme Lexer::getLexeme() {
     }
 
     return result;
+}
+
+void Lexer::SetBacktrackPoint() {
+    backtrack_index = curr_index;
+}
+
+void Lexer::JumpToBacktrackPoint() {
+    curr_index = backtrack_index;
 }
