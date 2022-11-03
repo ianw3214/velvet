@@ -14,7 +14,8 @@ int main() {
     // Lexer::LoadInputString("if a then if x then y - 30 else c + 100");
     // Lexer::LoadInputString("var test $ type; test := a - b + 1000;");
     // Lexer::LoadInputString("fn testfunc () -> type { var test $ type; test := a - b + 1000; if 10 + 10 then b else c };");
-    Lexer::LoadInputString("fn testfunc () -> type { if 10 + 10 then 20 else 30 };");
+    // Lexer::LoadInputString("fn testfunc () -> type { if 10 + 10 then 20 else 30 };");
+    Lexer::LoadInputString("fn main() -> type { loop { if a then b else c } }");
 
     ASTNode * base = Parser::Parse();
 
@@ -35,6 +36,10 @@ int main() {
             stack.push_back(ifExpr->mThenNode);
             stack.push_back(ifExpr->mElseNode);
             stack.push_back(ifExpr->mConditionNode);
+        }
+        if (LoopExpressionNode* loopExpr = dynamic_cast<LoopExpressionNode*>(top)) {
+            std::cout << "VISITED LOOP EXPR NODE\n";
+            stack.push_back(loopExpr->mBlockNode);
         }
         if (RelationalOperatorNode* relOp = dynamic_cast<RelationalOperatorNode*>(top)) {
             std::cout << "VISITED REL OPERATOR NODE: " << "relOp->mOperator" << '\n';

@@ -14,6 +14,7 @@ namespace {
         { "if", Token::IF },
         { "then", Token::THEN },
         { "else", Token::ELSE },
+        { "loop", Token::LOOP },
         { "var", Token::VAR_DECL },
         { "fn", Token::FN_DECL }
     };

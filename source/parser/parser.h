@@ -16,6 +16,7 @@ namespace Parser {
     ASTNode* ParseExpr();
     ASTNode* ParseBlockExpr();
     ASTNode* ParseIfExpr();
+    ASTNode* ParseLoopExpr();
     ASTNode* ParseRelExpr();
     ASTNode* ParseBinExpr();
     ASTNode* ParseBinExprRHS(ASTNode* left);

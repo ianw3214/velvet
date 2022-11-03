@@ -94,6 +94,10 @@ llvm::Value* IfExpressionNode::Codegen() {
 	return phi;
 }
 
+llvm::Value* LoopExpressionNode::Codegen() {
+	return nullptr;
+}
+
 llvm::Value* RelationalOperatorNode::Codegen() {
 	return nullptr;
 }

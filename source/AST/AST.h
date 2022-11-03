@@ -53,6 +53,14 @@ public:
     llvm::Value* Codegen() override;
 };
 
+class LoopExpressionNode : public ASTNode {
+public:
+    ASTNode* mBlockNode;
+
+    LoopExpressionNode(ASTNode* block) : mBlockNode(block) {}
+    llvm::Value* Codegen() override;
+};
+
 class RelationalOperatorNode : public ASTNode {
 public:
     ASTNode* mLeft;

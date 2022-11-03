@@ -17,6 +17,7 @@ enum class Token {
     IF,
     THEN,
     ELSE,
+    LOOP,
 
     // identifiers/literals
     ID,

@@ -39,3 +39,7 @@ TEST_CASE("Statement list with seperators lexes correctly", "[lexer]") {
 TEST_CASE("Function declaration with block lexes correctly", "[lexer]") {
 	_verifyInputStringGeneratesTokens("fn foo() {}", { Token::FN_DECL, Token::ID, Token::LEFT_BRACKET, Token::RIGHT_BRACKET, Token::LEFT_CURLY_BRACKET, Token::RIGHT_CURLY_BRACKET });
 }
+
+TEST_CASE("Loop expression lexes correctly", "[lexer]") {
+	_verifyInputStringGeneratesTokens("loop { foo() }", { Token::LOOP, Token::LEFT_CURLY_BRACKET, Token::ID, Token::LEFT_BRACKET, Token::RIGHT_BRACKET, Token::RIGHT_CURLY_BRACKET });
+}

@@ -18,6 +18,7 @@
   - block_expr
   - if_expr
   - rel_expr
+  - loop_expr
 - block_expr
   - { stmt_list expr }
 - if_expr
@@ -26,6 +27,8 @@
 - rel_expr
   - bin_expr relop bin_expr
   - bin_expr
+- loop_expr
+  - loop block_expr
 - bin_expr
   - bin_expr binop term
   - term
@@ -66,6 +69,7 @@
   - block_expr
   - if_expr
   - rel_expr
+  - loop_expr
 - block_expr
   - { stmt_list expr }
 - if_expr
@@ -74,6 +78,8 @@
 - rel_expr
   - bin_expr relop bin_expr
   - bin_expr
+- loop_expr
+  - loop block_expr
 - bin_expr
   - term bin_expr_rhs
 - bin_expr_rhs

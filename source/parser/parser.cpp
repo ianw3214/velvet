@@ -155,6 +155,9 @@ ASTNode* Parser::ParseExpr() {
     case Token::IF: {
         return ParseIfExpr();
     } break;
+    case Token::LOOP: {
+        return ParseLoopExpr();
+    } break;
     default: {
         return ParseRelExpr();
     }
@@ -183,6 +186,9 @@ ASTNode* Parser::ParseBlockExpr() {
 
 ASTNode* Parser::ParseIfExpr() {
     Lexeme lexeme = Lexer::getLexeme();
+    if (lexeme.token != Token::IF) {
+        std::cout << "ERROR! Expected 'if'\n";
+    }
     ASTNode* condition = ParseExpr();
     lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::THEN) {
@@ -196,6 +202,15 @@ ASTNode* Parser::ParseIfExpr() {
         opt_else = ParseExpr();
     }
     return new IfExpressionNode(condition, then, opt_else);
+}
+
+ASTNode* Parser::ParseLoopExpr() {
+    Lexeme lexeme = Lexer::getLexeme();
+    if (lexeme.token != Token::LOOP) {
+        std::cout << "ERROR! Expected 'loop'\n";
+    }
+    ASTNode* block = ParseBlockExpr();
+    return new LoopExpressionNode(block);
 }
 
 ASTNode* Parser::ParseRelExpr() {
