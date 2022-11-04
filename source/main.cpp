@@ -15,7 +15,7 @@ int main() {
     // Lexer::LoadInputString("var test $ type; test := a - b + 1000;");
     // Lexer::LoadInputString("fn testfunc () -> type { var test $ type; test := a - b + 1000; if 10 + 10 then b else c };");
     // Lexer::LoadInputString("fn testfunc () -> type { if 10 + 10 then 20 else 30 };");
-    Lexer::LoadInputString("fn main() -> type { loop { if a then b else c } }");
+    Lexer::LoadInputString("fn main() -> type { loop { if 100 then 15 else 20 } }");
 
     ASTNode * base = Parser::Parse();
 

@@ -95,7 +95,18 @@ llvm::Value* IfExpressionNode::Codegen() {
 }
 
 llvm::Value* LoopExpressionNode::Codegen() {
-	return nullptr;
+	llvm::Function* func = sBuilder->GetInsertBlock()->getParent();
+	llvm::BasicBlock* loopBlock = llvm::BasicBlock::Create(*sContext, "loop", func);
+
+	sBuilder->CreateBr(loopBlock);
+	sBuilder->SetInsertPoint(loopBlock);
+
+	mBlockNode->Codegen();
+	sBuilder->CreateBr(loopBlock);
+
+	// TODO: This should return last expression of the loop?
+	//  - Also need to handle break and return statements?
+	return llvm::Constant::getNullValue(llvm::Type::getDoubleTy(*sContext));
 }
 
 llvm::Value* RelationalOperatorNode::Codegen() {
