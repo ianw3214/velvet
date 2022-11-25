@@ -46,3 +46,7 @@ When generating cmake build with vcpkg packages, make sure to use the correct bu
 > cmake .. -DCMAKE_TOOLCHAIN_FILE=D:/vcpkg/scripts/buildsystems/vcpkg.cmake
 
 When using visual studio, make sure to switch off of the `Debug` configuration otherwise builds might not work
+
+# Useful links
+
+- https://llvm.org/docs/CMake.html#embedding-llvm-in-your-project
