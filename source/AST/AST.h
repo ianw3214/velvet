@@ -36,10 +36,9 @@ public:
 
 class BlockExpressionNode : public ASTNode {
 public:
-    ASTNode* mStatementList;
-    ASTNode* mExprNode;
+    ASTNode* mExpressionList;
 
-    BlockExpressionNode(ASTNode* statementList, ASTNode* expr) : mStatementList(statementList), mExprNode(expr) {}
+    BlockExpressionNode(ASTNode* expressionList) : mExpressionList(expressionList) {}
     llvm::Value* Codegen() override;
 };
 
@@ -91,20 +90,20 @@ public:
     llvm::Value* Codegen() override;
 };
 
-class AssignmentStatementNode : public ASTNode {
+class AssignmentExpressionNode : public ASTNode {
 public:
     std::string mIdentifier;
     ASTNode* mExpression;
 
-    AssignmentStatementNode(const std::string& id, ASTNode* expr) : mIdentifier(id), mExpression(expr) {}
+    AssignmentExpressionNode(const std::string& id, ASTNode* expr) : mIdentifier(id), mExpression(expr) {}
     llvm::Value* Codegen() override;
 };
 
-class StatementListNode : public ASTNode {
+class ExpressionListNode : public ASTNode {
 public:
-    std::vector<ASTNode*> mStatements;
+    std::vector<ASTNode*> mExpressions;
 
-    StatementListNode(std::vector<ASTNode*>&& statements) : mStatements(statements) {}
+    ExpressionListNode(std::vector<ASTNode*>&& expressions) : mExpressions(expressions) {}
     llvm::Value* Codegen() override;
 };
 

@@ -1,26 +1,25 @@
 # Grammar
 
-- stmt_list
-  - statement
-  - stmt_list statement
-- statement
-  - var_decl
-  - fn_decl
-  - assign_stmt
-- var_decl
-  - 'var' id '$' id ';'
-  - 'var' id '$' id ':=' expr ';'
-- fn_decl
+- expr_list
+  - expr_list ';' expr
+  - expr
+- var_decl_expr
+  - 'var' id '$' id
+  - 'var' id '$' id ':=' expr
+- fn_decl_expr
   - 'fn' id () '->' type block_expr
-- assign_stmt
-  - id ':=' expr ';'
+- assign_expr
+  - id ':=' expr
 - expr
+  - fn_decl_expr
+  - var_decl_expr
+  - assign_expr
   - block_expr
   - if_expr
   - rel_expr
   - loop_expr
 - block_expr
-  - { stmt_list expr }
+  - { expr_list }
 - if_expr
   - if expr then expr
   - if expr then expr else expr
@@ -51,27 +50,28 @@
 
 ## Translated
 
-- stmt_list
-  - statement
-  - stmt_list statement
-- statement
-  - var_decl
-  - fn_decl
-  - assign_stmt
-- var_decl
-  - id '$' id ';'
-  - id '$' id ':=' expr ';'
-- fn_decl
+- expr_list
+  - expr expr_list_post
+- expr_list_post
+  - ';' expr expr_list_post
+  - **empty**
+- var_decl_expr
+  - 'var' id '$' id
+  - 'var' id '$' id ':=' expr
+- fn_decl_expr
   - 'fn' id () '->' type block_expr
-- assign_stmt
-  - id ':=' expr ';'
+- assign_expr
+  - id ':=' expr
 - expr
+  - fn_decl_expr
+  - var_decl_expr
+  - assign_expr
   - block_expr
   - if_expr
   - rel_expr
   - loop_expr
 - block_expr
-  - { stmt_list expr }
+  - { expr_list }
 - if_expr
   - if expr then expr
   - if expr then expr else expr

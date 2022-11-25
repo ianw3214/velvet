@@ -42,10 +42,7 @@ llvm::Value* NumberNode::Codegen() {
 
 llvm::Value* BlockExpressionNode::Codegen() {
 	// statement list could be empty if the block expression just contains 1 single expression
-	if (mStatementList) {
-		mStatementList->Codegen();
-	}
-	return mExprNode->Codegen();
+	return mExpressionList->Codegen();
 }
 
 llvm::Value* IfExpressionNode::Codegen() {
@@ -142,12 +139,12 @@ llvm::Value* VariableDeclarationNode::Codegen() {
 	return nullptr;
 }
 
-llvm::Value* AssignmentStatementNode::Codegen() {
+llvm::Value* AssignmentExpressionNode::Codegen() {
 	return nullptr;
 }
 
-llvm::Value* StatementListNode::Codegen() {
-	for (ASTNode* node : mStatements) {
+llvm::Value* ExpressionListNode::Codegen() {
+	for (ASTNode* node : mExpressions) {
 		node->Codegen();
 	}
 	return nullptr;

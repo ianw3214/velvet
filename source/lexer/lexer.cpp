@@ -16,7 +16,9 @@ namespace {
         { "else", Token::ELSE },
         { "loop", Token::LOOP },
         { "var", Token::VAR_DECL },
-        { "fn", Token::FN_DECL }
+        { "fn", Token::FN_DECL },
+        // TEMPORARY, remove when lexer can peek ahead more than 1 token
+        { "assign", Token::ASSIGN_DECL }
     };
 
     inline bool _isAlphaNumerical(char c) {
@@ -44,7 +46,7 @@ std::pair<int, Token> _advanceLookahead(int lookahead) {
     } break;
     case ';': {
         lookahead_char = currString[++lookahead];
-        token = Token::STATEMENT_END;
+        token = Token::EXPRESSION_END;
     } break;
     case ':': {
         lookahead_char = currString[++lookahead];
@@ -213,12 +215,4 @@ Lexeme Lexer::getLexeme() {
     }
 
     return result;
-}
-
-void Lexer::SetBacktrackPoint() {
-    backtrack_index = curr_index;
-}
-
-void Lexer::JumpToBacktrackPoint() {
-    curr_index = backtrack_index;
 }

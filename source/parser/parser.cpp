@@ -21,43 +21,42 @@ namespace {
 }
 
 ASTNode* Parser::Parse() {
-    return ParseStatementList();
+    return ParseExprList();
     // return ParseExpr();
 }
 
-ASTNode* Parser::ParseStatementList() {
-    ASTNode* statement = ParseStatement();
-    if (!statement) {
+ASTNode* Parser::ParseExprList() {
+    ASTNode* expression = ParseExpr();
+    if (!expression) {
+        std::cout << "Error! Expected expression to be parsed\n";
         return nullptr;
     }
-    ASTNode* statement_opt = nullptr;
-    Lexeme lexeme = Lexer::peekLexeme();
-    if (lexeme.token == Token::VAR_DECL || lexeme.token == Token::ID) {
-        statement_opt = ParseStatementList();
+    ASTNode* expression_list_post = ParseExprListPost();
+    // TODO: There's probably a more efficient way to do this
+    std::vector<ASTNode*> expressions = { expression };
+    if (ExpressionListNode* list = dynamic_cast<ExpressionListNode*>(expression_list_post)) {
+        expressions.insert(expressions.end(), list->mExpressions.begin(), list->mExpressions.end());
     }
-    std::vector<ASTNode*> statements;
-    statements.push_back(statement);
-    if (StatementListNode* list = dynamic_cast<StatementListNode*>(statement_opt)) {
-        statements.insert(statements.end(), list->mStatements.begin(), list->mStatements.end());
-    }
-    return new StatementListNode(std::move(statements));
+    return new ExpressionListNode(std::move(expressions));
 }
 
-ASTNode* Parser::ParseStatement() {
-    Lexeme lexeme = Lexer::peekLexeme();
-    switch (lexeme.token) {
-    case Token::FN_DECL: {
-        return ParseFunctionDeclaration();
-    } break;
-    case Token::VAR_DECL: {
-        return ParseVariableDeclaration();
-    } break;
-    case Token::ID: {
-        return ParseAssignmentStmt();
-    } break;
+ASTNode* Parser::ParseExprListPost() {
+    Lexeme lexeme = Lexer::getLexeme();
+    if (lexeme.token != Token::EXPRESSION_END) {
+        return nullptr;
     }
-    std::cout << "Error! Expected valid statement\n";
-    return nullptr;
+    ASTNode* expression = ParseExpr();
+    if (!expression) {
+        std::cout << "Error! Expected expression to be parsed\n";
+        return nullptr;
+    }
+    ASTNode* expression_list_post = ParseExprListPost();
+    // TODO: There's probably a more efficient way to do this
+    std::vector<ASTNode*> expressions = { expression };
+    if (ExpressionListNode* list = dynamic_cast<ExpressionListNode*>(expression_list_post)) {
+        expressions.insert(expressions.end(), list->mExpressions.begin(), list->mExpressions.end());
+    }
+    return new ExpressionListNode(std::move(expressions));
 }
 
 ASTNode* Parser::ParseFunctionDeclaration() {
@@ -117,15 +116,10 @@ ASTNode* Parser::ParseVariableDeclaration() {
         Lexer::getLexeme();
         opt_assign = ParseExpr();
     }
-    lexeme = Lexer::getLexeme();
-    if (lexeme.token != Token::STATEMENT_END) {
-        std::cout << "Error! Expected end of statement token (;)\n";
-        return nullptr;
-    }
     return new VariableDeclarationNode(identifier, type, opt_assign);
 }
 
-ASTNode* Parser::ParseAssignmentStmt() {
+ASTNode* Parser::ParseAssignmentExpr() {
     Lexeme lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::ID) {
         std::cout << "ERROR! Expected id token\n";
@@ -139,16 +133,21 @@ ASTNode* Parser::ParseAssignmentStmt() {
     }
     ASTNode* expr = ParseExpr();
     lexeme = Lexer::getLexeme();
-    if (lexeme.token != Token::STATEMENT_END) {
-        std::cout << "Error! Expected end of statement token (;)\n";
-        return nullptr;
-    }
-    return new AssignmentStatementNode(identifier, expr);
+    return new AssignmentExpressionNode(identifier, expr);
 }
 
 ASTNode* Parser::ParseExpr() {
     Lexeme lexeme = Lexer::peekLexeme();
     switch (lexeme.token) {
+    case Token::FN_DECL: {
+        return ParseFunctionDeclaration();
+    } break;
+    case Token::VAR_DECL: {
+        return ParseVariableDeclaration();
+    } break;
+    case Token::ASSIGNMENT: {
+        return ParseAssignmentExpr();
+    } break;
     case Token::LEFT_CURLY_BRACKET: {
         return ParseBlockExpr();
     } break;
@@ -170,18 +169,8 @@ ASTNode* Parser::ParseBlockExpr() {
     if (lexeme.token != Token::LEFT_CURLY_BRACKET) {
         std::cout << "ERROR! Expected left curly bracket\n";
     }
-    // If we fail to find a statement, backtrack and parse an expression instead
-    Lexer::SetBacktrackPoint();
-    ASTNode* statementList = ParseStatementList();
-    if (!statementList) {
-        Lexer::JumpToBacktrackPoint();
-    }
-    ASTNode* expr = ParseExpr();
-    lexeme = Lexer::getLexeme();
-    if (lexeme.token != Token::RIGHT_CURLY_BRACKET) {
-        std::cout << "ERROR! Expected right curly bracket\n";
-    }
-    return new BlockExpressionNode(statementList, expr);
+    ASTNode* expressions = ParseExprList();
+    return new BlockExpressionNode(expressions);
 }
 
 ASTNode* Parser::ParseIfExpr() {

@@ -33,7 +33,7 @@ TEST_CASE("Variable declaration statement lexes correctly", "[lexer]") {
 }
 
 TEST_CASE("Statement list with seperators lexes correctly", "[lexer]") {
-	_verifyInputStringGeneratesTokens("var test $ type; test := expr;", { Token::VAR_DECL, Token::ID, Token::TYPE_DECL, Token::ID, Token::STATEMENT_END, Token::ID, Token::ASSIGNMENT, Token::ID, Token::STATEMENT_END });
+	_verifyInputStringGeneratesTokens("var test $ type; test := expr;", { Token::VAR_DECL, Token::ID, Token::TYPE_DECL, Token::ID, Token::EXPRESSION_END, Token::ID, Token::ASSIGNMENT, Token::ID, Token::EXPRESSION_END });
 }
 
 TEST_CASE("Function declaration with block lexes correctly", "[lexer]") {

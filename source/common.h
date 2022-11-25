@@ -11,6 +11,7 @@ enum class Token {
     VAR_DECL,
     TYPE_DECL,
     FN_DECL,
+    ASSIGN_DECL,    // <-- TEMPORARY
     ASSIGNMENT,
 
     // keywords
@@ -40,7 +41,7 @@ enum class Token {
     // misc tokens
     LEFT_BRACKET,
     RIGHT_BRACKET,
-    STATEMENT_END,
+    EXPRESSION_END,
     LEFT_CURLY_BRACKET,
     RIGHT_CURLY_BRACKET,
     FN_TYPE_RESULT,

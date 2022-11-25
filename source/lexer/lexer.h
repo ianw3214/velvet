@@ -19,7 +19,4 @@ namespace Lexer {
 	void LoadInputString(const std::string& string);
 	Lexeme peekLexeme();
 	Lexeme getLexeme();
-
-	void SetBacktrackPoint();
-	void JumpToBacktrackPoint();
 }

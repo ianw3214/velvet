@@ -51,17 +51,17 @@ int main() {
             stack.push_back(binOp->mRight);
             stack.push_back(binOp->mLeft);
         }
-        if (AssignmentStatementNode* assignStmt = dynamic_cast<AssignmentStatementNode*>(top)) {
-            std::cout << "VISITED ASSIGNMENT STATEMENT NODE: " << assignStmt->mIdentifier << '\n';
-            stack.push_back(assignStmt->mExpression);
+        if (AssignmentExpressionNode* assignExpr = dynamic_cast<AssignmentExpressionNode*>(top)) {
+            std::cout << "VISITED ASSIGNMENT STATEMENT NODE: " << assignExpr->mIdentifier << '\n';
+            stack.push_back(assignExpr->mExpression);
         }
         if (VariableDeclarationNode* declStmt = dynamic_cast<VariableDeclarationNode*>(top)) {
             std::cout << "VISITED VARIABLE DECLARATION NODE: " << declStmt->mIdentifier << "(type: " << declStmt->mType << ")\n";
             stack.push_back(declStmt->mExpression);
         }
-        if (StatementListNode* stmtList = dynamic_cast<StatementListNode*>(top)) {
-            std::cout << "VISITED STATEMENT LIST OF SIZE " << stmtList->mStatements.size() << '\n';
-            for (ASTNode* node : stmtList->mStatements) {
+        if (ExpressionListNode* exprList = dynamic_cast<ExpressionListNode*>(top)) {
+            std::cout << "VISITED STATEMENT LIST OF SIZE " << exprList->mExpressions.size() << '\n';
+            for (ASTNode* node : exprList->mExpressions) {
                 stack.push_back(node);
             }
         }
@@ -71,8 +71,7 @@ int main() {
         }
         if (BlockExpressionNode* blockExpr = dynamic_cast<BlockExpressionNode*>(top)) {
             std::cout << "VISITED BLOCK EXPRESSION NODE\n";
-            stack.push_back(blockExpr->mStatementList);
-            stack.push_back(blockExpr->mExprNode);
+            stack.push_back(blockExpr->mExpressionList);
         }
     }
 
