@@ -111,9 +111,27 @@ class FunctionDeclNode : public ASTNode {
 public:
     std::string mName;
     std::string mType;
+    ASTNode* mParamList;
     ASTNode* mBlockExpr;
 
-    FunctionDeclNode(const std::string& name, const std::string& type, ASTNode* blockExpr) : mName(name), mType(type), mBlockExpr(blockExpr) {}
+    FunctionDeclNode(const std::string& name, const std::string& type, ASTNode* paramList, ASTNode* blockExpr) : mName(name), mType(type), mParamList(paramList), mBlockExpr(blockExpr) {}
+    llvm::Value* Codegen() override;
+};
+
+class FunctionParamNode : public ASTNode {
+public:
+    std::string mName;
+    std::string mType;
+
+    FunctionParamNode(const std::string& id, const std::string& type) : mName(id), mType(type) {}
+    llvm::Value* Codegen() override;
+};
+
+class FunctionParamListNode : public ASTNode {
+public:
+    std::vector<ASTNode*> mParams;
+
+    FunctionParamListNode(std::vector<ASTNode*>&& params) : mParams(params) {}
     llvm::Value* Codegen() override;
 };
 

@@ -48,6 +48,10 @@ std::pair<int, Token> _advanceLookahead(int lookahead) {
         lookahead_char = currString[++lookahead];
         token = Token::EXPRESSION_END;
     } break;
+    case ',': {
+        lookahead_char = currString[++lookahead];
+        token = Token::COMMA;
+    } break;
     case ':': {
         lookahead_char = currString[++lookahead];
         if (lookahead < currString.size()) {

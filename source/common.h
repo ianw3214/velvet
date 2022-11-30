@@ -39,6 +39,7 @@ enum class Token {
     NOT_EQUALS,
 
     // misc tokens
+    COMMA,
     LEFT_BRACKET,
     RIGHT_BRACKET,
     EXPRESSION_END,

@@ -11,6 +11,9 @@ namespace Parser {
     ASTNode* ParseExprList();
     ASTNode* ParseExprListPost();
     ASTNode* ParseFunctionDeclaration();
+    ASTNode* ParseFunctionParamList();
+    ASTNode* ParseFunctionParamListPost();
+    ASTNode* ParseFunctionParam();
     ASTNode* ParseVariableDeclaration();
     ASTNode* ParseAssignmentExpr();
     ASTNode* ParseExpr();

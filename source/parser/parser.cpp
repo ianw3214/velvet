@@ -73,6 +73,7 @@ ASTNode* Parser::ParseFunctionDeclaration() {
     if (lexeme.token != Token::LEFT_BRACKET) {
         std::cout << "Error! Expected left bracket\n";
     }
+    ASTNode* funcParams = ParseFunctionParamList();
     lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::RIGHT_BRACKET) {
         std::cout << "Error! Expected right bracket\n";
@@ -87,7 +88,55 @@ ASTNode* Parser::ParseFunctionDeclaration() {
     }
     std::string type = lexeme.symbol;
     ASTNode* block = ParseBlockExpr();
-    return new FunctionDeclNode(identifier, type, block);
+    return new FunctionDeclNode(identifier, type, funcParams, block);
+}
+
+ASTNode* Parser::ParseFunctionParamList() {
+    Lexeme lexeme = Lexer::peekLexeme();
+    if (lexeme.token == Token::ID) {
+        ASTNode* param = ParseFunctionParam();
+        ASTNode* paramPost = ParseFunctionParamListPost();
+        std::vector<ASTNode*> params = { param };
+        // TODO: There's probably a more efficient way to do this
+        if (FunctionParamListNode* node = dynamic_cast<FunctionParamListNode*>(paramPost)) {
+            params.insert(params.end(), node->mParams.begin(), node->mParams.end());
+        }
+        return new FunctionParamListNode(std::move(params));
+    }
+    return nullptr;
+}
+
+ASTNode* Parser::ParseFunctionParamListPost() {
+    Lexeme lexeme = Lexer::peekLexeme();
+    if (lexeme.token == Token::COMMA) {
+        Lexer::getLexeme();
+        ASTNode* param = ParseFunctionParam();
+        ASTNode* paramPost = ParseFunctionParamListPost();
+        std::vector<ASTNode*> params = { param };
+        // TODO: There's probably a more efficient way to do this
+        if (FunctionParamListNode* node = dynamic_cast<FunctionParamListNode*>(paramPost)) {
+            params.insert(params.end(), node->mParams.begin(), node->mParams.end());
+        }
+        return new FunctionParamListNode(std::move(params));
+    }
+    return nullptr;
+}
+ASTNode* Parser::ParseFunctionParam() {
+    Lexeme lexeme = Lexer::getLexeme();
+    if (lexeme.token != Token::ID) {
+        std::cout << "Error! Expected id token\n";
+    }
+    std::string identifier = lexeme.symbol;
+    lexeme = Lexer::getLexeme();
+    if (lexeme.token != Token::TYPE_DECL) {
+        std::cout << "Error! Expected type declaration ($)\n";
+    }
+    lexeme = Lexer::getLexeme();
+    if (lexeme.token != Token::ID) {
+        std::cout << "Error! Expected type name id token\n";
+    }
+    std::string type = lexeme.symbol;
+    return new FunctionParamNode(identifier, type);
 }
 
 ASTNode* Parser::ParseVariableDeclaration() {

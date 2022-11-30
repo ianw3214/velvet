@@ -7,7 +7,13 @@
   - 'var' id '$' id
   - 'var' id '$' id ':=' expr
 - fn_decl_expr
-  - 'fn' id () '->' type block_expr
+  - 'fn' id ( fn_param_list ) '->' type block_expr
+- fn_param_list
+  - fn_param_list ',' fn_param
+  - fn_param
+  - **empty**
+- fn_param
+  - id '$' id
 - assign_expr
   - id ':=' expr
 - expr
@@ -59,7 +65,15 @@
   - 'var' id '$' id
   - 'var' id '$' id ':=' expr
 - fn_decl_expr
-  - 'fn' id () '->' type block_expr
+  - 'fn' id ( fn_param_list ) '->' type block_expr
+- fn_param_list
+  - fn_param fn_param_list_post
+  - **empty**
+- fn_param_list_post
+  - ',' fn_param fn_param_list_post
+  - **empty**
+- fn_param
+  - id '$' id
 - assign_expr
   - id ':=' expr
 - expr

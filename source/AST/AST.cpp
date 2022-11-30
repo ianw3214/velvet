@@ -171,3 +171,11 @@ llvm::Value* FunctionDeclNode::Codegen() {
 	// func->eraseFromParent();
 	return nullptr;
 }
+
+llvm::Value* FunctionParamNode::Codegen() {
+	return nullptr;
+}
+
+llvm::Value* FunctionParamListNode::Codegen() {
+	return nullptr;
+}
