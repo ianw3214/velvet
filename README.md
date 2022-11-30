@@ -1,4 +1,4 @@
-# Maple
+# Velvet
 
 [Windows setup instructions](docs/setup.md)
 

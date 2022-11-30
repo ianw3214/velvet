@@ -3,5 +3,5 @@ add_subdirectory(symbol)
 add_subdirectory(parser)
 add_subdirectory(AST)
 
-target_sources(Maple PRIVATE common.h)
-target_sources(MapleMain PRIVATE main.cpp)
+target_sources(Velvet PRIVATE common.h)
+target_sources(VelvetMain PRIVATE main.cpp)

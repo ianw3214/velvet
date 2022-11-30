@@ -1,1 +1,1 @@
-target_sources(Maple PRIVATE symboltable.h symboltable.cpp)
+target_sources(Velvet PRIVATE symboltable.h symboltable.cpp)

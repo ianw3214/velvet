@@ -1,1 +1,1 @@
-target_sources(Maple PRIVATE lexer.h lexer.cpp)
+target_sources(Velvet PRIVATE lexer.h lexer.cpp)

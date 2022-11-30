@@ -1,1 +1,1 @@
-target_sources(Maple PRIVATE parser.h parser.cpp)
+target_sources(Velvet PRIVATE parser.h parser.cpp)

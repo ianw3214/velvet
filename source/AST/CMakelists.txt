@@ -1,1 +1,1 @@
-target_sources(Maple PRIVATE AST.h AST.cpp)
+target_sources(Velvet PRIVATE AST.h AST.cpp)

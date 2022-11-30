@@ -1,1 +1,1 @@
-target_sources(MapleTests PRIVATE main.cpp)
+target_sources(VelvetTests PRIVATE main.cpp)

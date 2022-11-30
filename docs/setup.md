@@ -14,8 +14,8 @@
 
 3. Use CMake to setup a build for llvm
 
-> mkdir build
-> cd build
+> mkdir build  
+> cd build  
 > cmake -DLLVM_ENABLE_PROJECTS=clang -CMAKE_INSTALL_PREFIX=C:\llvm ..\llvm
 
 **NOTE**: Make sure you set the **CMAKE_INSTALL_PREFIX** to something without spaces otherwise bad things will happen
