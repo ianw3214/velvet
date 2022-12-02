@@ -151,14 +151,26 @@ llvm::Value* ExpressionListNode::Codegen() {
 }
 
 llvm::Value* FunctionDeclNode::Codegen() {
-	llvm::FunctionType* funcType = llvm::FunctionType::get(llvm::Type::getDoublePtrTy(*sContext), false);
+	// TODO: Actually handle what the types should be
+	FunctionParamListNode* params = dynamic_cast<FunctionParamListNode*>(mParamList);
+	std::vector<llvm::Type*> paramTypes(params->mParams.size(), llvm::Type::getDoubleTy(*sContext));
+
+	llvm::FunctionType* funcType = llvm::FunctionType::get(llvm::Type::getDoublePtrTy(*sContext), paramTypes, false);
 	llvm::Function* func = llvm::Function::Create(funcType, llvm::Function::ExternalLinkage, mName, sModule.get());
+
+	// set names for arguments
+	// TODO: Record function arguments in named values map
+	unsigned int index = 0;
+	for (auto& arg : func->args()) {
+		FunctionParamNode* param = dynamic_cast<FunctionParamNode*>(params->mParams[index]);
+		arg.setName(param->mName);
+		sNamedValues[param->mName] = &arg;
+		index++;
+	}
 
 	// Create basic block to start insertion into
 	llvm::BasicBlock* basicBlock = llvm::BasicBlock::Create(*sContext, "entry", func);
 	sBuilder->SetInsertPoint(basicBlock);
-
-	// TODO: Record function arguments in named values map
 
 	if (llvm::Value* value = mBlockExpr->Codegen()) {
 		sBuilder->CreateRet(value);
