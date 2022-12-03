@@ -11,7 +11,7 @@
 static std::unique_ptr<llvm::LLVMContext> sContext;
 static std::unique_ptr<llvm::Module> sModule;
 static std::unique_ptr<llvm::IRBuilder<>> sBuilder;
-static std::unordered_map<std::string, llvm::Value*> sNamedValues;
+static std::unordered_map<std::string, llvm::AllocaInst*> sNamedValues;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // DEBUG
@@ -26,13 +26,23 @@ void printLLVM() {
 	sModule->print(llvm::errs(), nullptr);
 }
 /////////////////////////////////////////////////////////////////////////////////////////
+// HELPER
+
+namespace {
+	llvm::AllocaInst* CreateEntryBlockAlloca(llvm::Function* func, const std::string& varName) {
+		llvm::IRBuilder<> tempBuilder(&func->getEntryBlock(), func->getEntryBlock().begin());
+		return tempBuilder.CreateAlloca(llvm::Type::getDoubleTy(*sContext), 0, varName.c_str());
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
 
 llvm::Value* IdentifierNode::Codegen() {
 	llvm::Value* value = sNamedValues[mIdentifier];
 	if (!value) {
 		// TODO: Error
 	}
-	return value;
+	return sBuilder->CreateLoad(llvm::Type::getDoubleTy(*sContext), value, mIdentifier.c_str());
 }
 
 llvm::Value* NumberNode::Codegen() {
@@ -158,19 +168,19 @@ llvm::Value* FunctionDeclNode::Codegen() {
 	llvm::FunctionType* funcType = llvm::FunctionType::get(llvm::Type::getDoublePtrTy(*sContext), paramTypes, false);
 	llvm::Function* func = llvm::Function::Create(funcType, llvm::Function::ExternalLinkage, mName, sModule.get());
 
-	// set names for arguments
-	// TODO: Record function arguments in named values map
-	unsigned int index = 0;
-	for (auto& arg : func->args()) {
-		FunctionParamNode* param = dynamic_cast<FunctionParamNode*>(params->mParams[index]);
-		arg.setName(param->mName);
-		sNamedValues[param->mName] = &arg;
-		index++;
-	}
-
 	// Create basic block to start insertion into
 	llvm::BasicBlock* basicBlock = llvm::BasicBlock::Create(*sContext, "entry", func);
 	sBuilder->SetInsertPoint(basicBlock);
+
+	unsigned int index = 0;
+	for (auto& arg : func->args()) {
+		FunctionParamNode* param = dynamic_cast<FunctionParamNode*>(params->mParams[index]);
+		// arg.setName(param->mName);
+		llvm::AllocaInst* allocaInst = CreateEntryBlockAlloca(func, param->mName);
+		sBuilder->CreateStore(&arg, allocaInst);
+		sNamedValues[param->mName] = allocaInst;
+		index++;
+	}
 
 	if (llvm::Value* value = mBlockExpr->Codegen()) {
 		sBuilder->CreateRet(value);
