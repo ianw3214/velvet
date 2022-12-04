@@ -150,6 +150,12 @@ llvm::Value* VariableDeclarationNode::Codegen() {
 }
 
 llvm::Value* AssignmentExpressionNode::Codegen() {
+	llvm::Value* variable = sNamedValues[mIdentifier];
+	if (!variable) {
+		// TODO: Error
+	}
+	llvm::Value* value = mExpression->Codegen();
+	sBuilder->CreateStore(value, variable);
 	return nullptr;
 }
 

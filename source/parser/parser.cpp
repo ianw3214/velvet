@@ -169,6 +169,7 @@ ASTNode* Parser::ParseVariableDeclaration() {
 }
 
 ASTNode* Parser::ParseAssignmentExpr() {
+    Lexer::getLexeme();
     Lexeme lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::ID) {
         std::cout << "ERROR! Expected id token\n";
@@ -181,7 +182,6 @@ ASTNode* Parser::ParseAssignmentExpr() {
         return nullptr;
     }
     ASTNode* expr = ParseExpr();
-    lexeme = Lexer::getLexeme();
     return new AssignmentExpressionNode(identifier, expr);
 }
 
@@ -194,7 +194,7 @@ ASTNode* Parser::ParseExpr() {
     case Token::VAR_DECL: {
         return ParseVariableDeclaration();
     } break;
-    case Token::ASSIGNMENT: {
+    case Token::ASSIGN_DECL: {
         return ParseAssignmentExpr();
     } break;
     case Token::LEFT_CURLY_BRACKET: {
