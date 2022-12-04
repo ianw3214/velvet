@@ -146,6 +146,22 @@ llvm::Value* BinaryOperatorNode::Codegen() {
 }
 
 llvm::Value* VariableDeclarationNode::Codegen() {
+	llvm::Function* parent = sBuilder->GetInsertBlock()->getParent();
+	llvm::Value* initVal = nullptr;
+	if (mExpression) {
+		initVal = mExpression->Codegen();
+		if (!initVal) {
+			//TODO: Error
+			return nullptr;
+		}
+	}
+	else {
+		initVal = llvm::ConstantFP::get(*sContext, llvm::APFloat(0.0f));
+	}
+	llvm::AllocaInst* allocaInst = CreateEntryBlockAlloca(parent, mIdentifier);
+	sBuilder->CreateStore(initVal, allocaInst);
+
+	sNamedValues[mIdentifier] = allocaInst;
 	return nullptr;
 }
 
