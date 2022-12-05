@@ -4,9 +4,16 @@
 #include <string>
 #include <unordered_map>
 
-#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/LegacyPassManager.h"
+#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/MC/TargetRegistry.h"
+#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/Host.h"
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Target/TargetMachine.h"
+#include "llvm/Target/TargetOptions.h"
 
 static std::unique_ptr<llvm::LLVMContext> sContext;
 static std::unique_ptr<llvm::Module> sModule;
@@ -24,6 +31,46 @@ void initLLVM() {
 
 void printLLVM() {
 	sModule->print(llvm::errs(), nullptr);
+
+	llvm::InitializeAllTargetInfos();
+	llvm::InitializeAllTargets();
+	llvm::InitializeAllTargetMCs();
+	llvm::InitializeAllAsmParsers();
+	llvm::InitializeAllAsmPrinters();
+
+	std::string targetError;
+	const std::string targetTriple = llvm::sys::getDefaultTargetTriple();
+	const llvm::Target* target = llvm::TargetRegistry::lookupTarget(targetTriple, targetError);
+	if (!target) {
+		// TODO: Error handling
+		return;
+	}
+
+	const std::string CPU = "generic";
+	const std::string features = "";
+	llvm::TargetOptions options;
+	llvm::Optional<llvm::Reloc::Model> rm;
+	llvm::TargetMachine* targetMachine = target->createTargetMachine(targetTriple, CPU, features, options, rm);
+
+	sModule->setDataLayout(targetMachine->createDataLayout());
+	sModule->setTargetTriple(targetTriple);
+
+	std::string fileName = "output.o";
+	std::error_code errorCode;
+	llvm::raw_fd_ostream destination(fileName, errorCode, llvm::sys::fs::OF_None);
+	if (errorCode) {
+		llvm::errs() << "Could not open file: " << errorCode.message();
+		return;
+	}
+
+	llvm::legacy::PassManager pass;
+	llvm::CodeGenFileType fileType = llvm::CGFT_ObjectFile;
+	if (targetMachine->addPassesToEmitFile(pass, destination, nullptr, fileType)) {
+		llvm::errs() << "TargetMachine can't emit file of this type: ";
+		return;
+	}
+	pass.run(*sModule);
+	destination.flush();
 }
 /////////////////////////////////////////////////////////////////////////////////////////
 // HELPER
