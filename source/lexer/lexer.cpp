@@ -17,6 +17,10 @@ namespace {
         { "loop", Token::LOOP },
         { "var", Token::VAR_DECL },
         { "fn", Token::FN_DECL },
+        // types
+        { "i32" , Token::TYPE_I32 },
+        { "f32" , Token::TYPE_F32 },
+        { "bool" , Token::TYPE_BOOL },
         // TEMPORARY, remove when lexer can peek ahead more than 1 token
         { "assign", Token::ASSIGN_DECL }
     };

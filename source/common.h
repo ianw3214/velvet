@@ -47,6 +47,12 @@ enum class Token {
     RIGHT_CURLY_BRACKET,
     FN_TYPE_RESULT,
 
+    // types
+    TYPE_I32,
+    TYPE_F32,
+    TYPE_BOOL,
+    TYPE_ID,
+
     TOKEN_EOF
 };
 
