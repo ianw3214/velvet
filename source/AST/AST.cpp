@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <algorithm>
 
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LegacyPassManager.h"
@@ -76,9 +77,22 @@ void printLLVM() {
 // HELPER
 
 namespace {
-	llvm::AllocaInst* CreateEntryBlockAlloca(llvm::Function* func, const std::string& varName) {
+	llvm::Type* GetRawLLVMType(Token typeClass) {
+		if (typeClass == Token::TYPE_I32) {
+			return llvm::Type::getInt32Ty(*sContext);
+		}
+		if (typeClass == Token::TYPE_F32) {
+			return llvm::Type::getFloatTy(*sContext);
+		}
+		if (typeClass == Token::TYPE_BOOL) {
+			return llvm::Type::getInt1Ty(*sContext);
+		}
+		return nullptr;
+	}
+
+	llvm::AllocaInst* CreateEntryBlockAlloca(llvm::Function* func, const std::string& varName, Token type) {
 		llvm::IRBuilder<> tempBuilder(&func->getEntryBlock(), func->getEntryBlock().begin());
-		return tempBuilder.CreateAlloca(llvm::Type::getDoubleTy(*sContext), 0, varName.c_str());
+		return tempBuilder.CreateAlloca(GetRawLLVMType(type), 0, varName.c_str());
 	}
 }
 
@@ -205,7 +219,8 @@ llvm::Value* VariableDeclarationNode::Codegen() {
 	else {
 		initVal = llvm::ConstantFP::get(*sContext, llvm::APFloat(0.0f));
 	}
-	llvm::AllocaInst* allocaInst = CreateEntryBlockAlloca(parent, mIdentifier);
+	TypeNode* type = dynamic_cast<TypeNode*>(mType);
+	llvm::AllocaInst* allocaInst = CreateEntryBlockAlloca(parent, mIdentifier, type->mTypeClass);
 	sBuilder->CreateStore(initVal, allocaInst);
 
 	sNamedValues[mIdentifier] = allocaInst;
@@ -233,9 +248,17 @@ llvm::Value* ExpressionListNode::Codegen() {
 llvm::Value* FunctionDeclNode::Codegen() {
 	// TODO: Actually handle what the types should be
 	FunctionParamListNode* params = dynamic_cast<FunctionParamListNode*>(mParamList);
-	std::vector<llvm::Type*> paramTypes(params ? params->mParams.size() : 0, llvm::Type::getDoubleTy(*sContext));
+	std::vector<llvm::Type*> paramTypes;
+	if (params) {
+		std::transform(params->mParams.cbegin(), params->mParams.cend(), std::back_inserter(paramTypes), [](ASTNode* rawParam) {
+			FunctionParamNode* param = dynamic_cast<FunctionParamNode*>(rawParam);
+			TypeNode* type = dynamic_cast<TypeNode*>(param->mType);
+			return GetRawLLVMType(type->mTypeClass);
+		});
+	}
 
-	llvm::FunctionType* funcType = llvm::FunctionType::get(llvm::Type::getDoublePtrTy(*sContext), paramTypes, false);
+	TypeNode* returnType = dynamic_cast<TypeNode*>(mType);
+	llvm::FunctionType* funcType = llvm::FunctionType::get(GetRawLLVMType(returnType->mTypeClass), paramTypes, false);
 	llvm::Function* func = llvm::Function::Create(funcType, llvm::Function::ExternalLinkage, mName, sModule.get());
 
 	// Create basic block to start insertion into
@@ -245,8 +268,8 @@ llvm::Value* FunctionDeclNode::Codegen() {
 	unsigned int index = 0;
 	for (auto& arg : func->args()) {
 		FunctionParamNode* param = dynamic_cast<FunctionParamNode*>(params->mParams[index]);
-		// arg.setName(param->mName);
-		llvm::AllocaInst* allocaInst = CreateEntryBlockAlloca(func, param->mName);
+		TypeNode* type = dynamic_cast<TypeNode*>(param->mType);
+		llvm::AllocaInst* allocaInst = CreateEntryBlockAlloca(func, param->mName, type->mTypeClass);
 		sBuilder->CreateStore(&arg, allocaInst);
 		sNamedValues[param->mName] = allocaInst;
 		index++;
