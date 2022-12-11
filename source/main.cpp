@@ -16,7 +16,9 @@ int main() {
     // Lexer::LoadInputString("fn testfunc () -> type { var test $ type; test := a - b + 1000; if 10 + 10 then b else c };");
     // Lexer::LoadInputString("fn testfunc () -> type { if 10 + 10 then 20 else 30 };");
     // Lexer::LoadInputString("fn main() -> type { loop { if 100 then 15 else 20 } }");
-    Lexer::LoadInputString("fn main(argc $ int, argv $ str) -> type { var test $ type := 15; assign argc := 15; loop { if argc then test else argc } }");
+    // Lexer::LoadInputString("fn main(argc $ int, argv $ str) -> type { var test $ type := 15; assign argc := 15; loop { if argc then test else argc } }");
+    // Lexer::LoadInputString("fn sum(a $ i32, b $ i32) -> i32 { a + b }");
+    Lexer::LoadInputString("fn testfunc() -> i32 { var testvar $ i32 := 10; testvar + 10 }");
     
     ASTNode * base = Parser::Parse();
 
@@ -67,9 +69,10 @@ int main() {
             }
         }
         if (FunctionDeclNode* funcDecl = dynamic_cast<FunctionDeclNode*>(top)) {
-            std::cout << "VISITED FUNCTION NODE W/ NAME: " << funcDecl->mName << " AND TYPE: " << funcDecl->mType << '\n';
-            stack.push_back(funcDecl->mParamList);
+            std::cout << "VISITED FUNCTION NODE W/ NAME: " << funcDecl->mName << '\n';
             stack.push_back(funcDecl->mBlockExpr);
+            stack.push_back(funcDecl->mType);
+            stack.push_back(funcDecl->mParamList);
         }
         if (BlockExpressionNode* blockExpr = dynamic_cast<BlockExpressionNode*>(top)) {
             std::cout << "VISITED BLOCK EXPRESSION NODE\n";
@@ -82,7 +85,14 @@ int main() {
             }
         }
         if (FunctionParamNode* funcParam = dynamic_cast<FunctionParamNode*>(top)) {
-            std::cout << "VISITED FUNCTION PARAMETER " << funcParam->mName << " (type: " << funcParam->mType << ")\n";
+            std::cout << "VISITED FUNCTION PARAMETER " << funcParam->mName << '\n';
+            stack.push_back(funcParam->mType);
+        }
+        if (TypeNode* type = dynamic_cast<TypeNode*>(top)) {
+            if (type->mTypeClass == Token::TYPE_I32) std::cout << "VISITED TYPE NODE (i32)\n";
+            if (type->mTypeClass == Token::TYPE_F32) std::cout << "VISITED TYPE NODE (f32)\n";
+            if (type->mTypeClass == Token::TYPE_BOOL) std::cout << "VISITED TYPE NODE (bool)\n";
+            if (type->mTypeClass == Token::ID) std::cout << "VISITED TYPE NODE (" + type->mIdentifier + ")\n";
         }
     }
 

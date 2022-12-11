@@ -223,16 +223,17 @@ llvm::Value* AssignmentExpressionNode::Codegen() {
 }
 
 llvm::Value* ExpressionListNode::Codegen() {
+	llvm::Value* last = nullptr;
 	for (ASTNode* node : mExpressions) {
-		node->Codegen();
+		last = node->Codegen();
 	}
-	return nullptr;
+	return last;
 }
 
 llvm::Value* FunctionDeclNode::Codegen() {
 	// TODO: Actually handle what the types should be
 	FunctionParamListNode* params = dynamic_cast<FunctionParamListNode*>(mParamList);
-	std::vector<llvm::Type*> paramTypes(params->mParams.size(), llvm::Type::getDoubleTy(*sContext));
+	std::vector<llvm::Type*> paramTypes(params ? params->mParams.size() : 0, llvm::Type::getDoubleTy(*sContext));
 
 	llvm::FunctionType* funcType = llvm::FunctionType::get(llvm::Type::getDoublePtrTy(*sContext), paramTypes, false);
 	llvm::Function* func = llvm::Function::Create(funcType, llvm::Function::ExternalLinkage, mName, sModule.get());
@@ -268,5 +269,9 @@ llvm::Value* FunctionParamNode::Codegen() {
 }
 
 llvm::Value* FunctionParamListNode::Codegen() {
+	return nullptr;
+}
+
+llvm::Value* TypeNode::Codegen() {
 	return nullptr;
 }
