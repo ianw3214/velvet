@@ -99,15 +99,16 @@ namespace {
 /////////////////////////////////////////////////////////////////////////////////////////
 
 llvm::Value* IdentifierNode::Codegen() {
-	llvm::Value* value = sNamedValues[mIdentifier];
+	llvm::AllocaInst* value = sNamedValues[mIdentifier];
 	if (!value) {
 		// TODO: Error
 	}
-	return sBuilder->CreateLoad(llvm::Type::getDoubleTy(*sContext), value, mIdentifier.c_str());
+	return sBuilder->CreateLoad(value->getAllocatedType(), value, mIdentifier.c_str());
 }
 
 llvm::Value* NumberNode::Codegen() {
 	// TODO: This should be converted during parse?
+	// TODO: This should have different llvm type depending on context
 	return llvm::ConstantFP::get(*sContext, llvm::APFloat(std::stof(mNumber)));
 }
 
@@ -121,8 +122,6 @@ llvm::Value* IfExpressionNode::Codegen() {
 	if (!condition) {
 		return nullptr;
 	}
-	// TODO: Skip the compare to 0 since that's not necessary in this language
-	condition = sBuilder->CreateFCmpONE(condition, llvm::ConstantFP::get(*sContext, llvm::APFloat(0.0)), "ifcond");
 
 	llvm::Function* parentFunc = sBuilder->GetInsertBlock()->getParent();
 	llvm::BasicBlock* thenBasicBlock = llvm::BasicBlock::Create(*sContext, "then", parentFunc);
@@ -153,7 +152,7 @@ llvm::Value* IfExpressionNode::Codegen() {
 
 	parentFunc->getBasicBlockList().push_back(mergeBasicBlock);
 	sBuilder->SetInsertPoint(mergeBasicBlock);
-	llvm::PHINode* phi = sBuilder->CreatePHI(llvm::Type::getDoubleTy(*sContext), 2, "iftmp");
+	llvm::PHINode* phi = sBuilder->CreatePHI(thenVal->getType(), 2, "iftmp");
 	phi->addIncoming(thenVal, thenBasicBlock);
 	if (elseVal) {
 		phi->addIncoming(elseVal, elseBasicBlock);
@@ -169,12 +168,14 @@ llvm::Value* LoopExpressionNode::Codegen() {
 	sBuilder->CreateBr(loopBlock);
 	sBuilder->SetInsertPoint(loopBlock);
 
-	mBlockNode->Codegen();
+	llvm::Value* blockExpressionValue = mBlockNode->Codegen();
 	sBuilder->CreateBr(loopBlock);
 
 	// TODO: This should return last expression of the loop?
 	//  - Also need to handle break and return statements?
-	return llvm::Constant::getNullValue(llvm::Type::getDoubleTy(*sContext));
+	//  - last expression of loop doesn't make sense i think...
+	//    - unless some sort of language construct gets added for this? idk
+	return blockExpressionValue;
 }
 
 llvm::Value* RelationalOperatorNode::Codegen() {
@@ -189,7 +190,12 @@ llvm::Value* BinaryOperatorNode::Codegen() {
 	}
 	switch (mOperator) {
 	case Token::PLUS: {
-		return sBuilder->CreateFAdd(left, right, "addtmp");
+		if (left->getType()->isFloatTy()) {
+			return sBuilder->CreateFAdd(left, right, "addtmp");
+		}
+		else {
+			return sBuilder->CreateAdd(left, right, "addtmp");
+		}
 	} break;
 	case Token::MINUS: {
 		return sBuilder->CreateFAdd(left, right, "subtmp");
