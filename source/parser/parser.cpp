@@ -82,11 +82,7 @@ ASTNode* Parser::ParseFunctionDeclaration() {
     if (lexeme.token != Token::FN_TYPE_RESULT) {
         std::cout << "Error! Expected -> for function type result\n";
     }
-    lexeme = Lexer::getLexeme();
-    if (lexeme.token != Token::ID) {
-        std::cout << "Error! Expected id token for function type\n";
-    }
-    std::string type = lexeme.symbol;
+    ASTNode* type = ParseType();
     ASTNode* block = ParseBlockExpr();
     return new FunctionDeclNode(identifier, type, funcParams, block);
 }
@@ -131,11 +127,7 @@ ASTNode* Parser::ParseFunctionParam() {
     if (lexeme.token != Token::TYPE_DECL) {
         std::cout << "Error! Expected type declaration ($)\n";
     }
-    lexeme = Lexer::getLexeme();
-    if (lexeme.token != Token::ID) {
-        std::cout << "Error! Expected type name id token\n";
-    }
-    std::string type = lexeme.symbol;
+    ASTNode* type = ParseType();
     return new FunctionParamNode(identifier, type);
 }
 
@@ -153,11 +145,7 @@ ASTNode* Parser::ParseVariableDeclaration() {
     if (lexeme.token != Token::TYPE_DECL) {
         std::cout << "Error! Expected type declaration ($)\n";
     }
-    lexeme = Lexer::getLexeme();
-    if (lexeme.token != Token::ID) {
-        std::cout << "Error! Expected type name id token\n";
-    }
-    std::string type = lexeme.symbol;
+    ASTNode* type = ParseType();
     // optional assignment after var declaration
     ASTNode* opt_assign = nullptr;
     lexeme = Lexer::peekLexeme();
@@ -277,6 +265,24 @@ ASTNode* Parser::ParseBinExprRHS(ASTNode* left){
         ASTNode* opt_post = ParseBinExprRHS(binop);
         return opt_post ? opt_post : binop;
     }
+    return nullptr;
+}
+
+ASTNode* Parser::ParseType() {
+    Lexeme lexeme = Lexer::getLexeme();
+    if (lexeme.token == Token::TYPE_I32) {
+        return new TypeNode(Token::TYPE_I32);
+    }
+    if (lexeme.token == Token::TYPE_F32) {
+        return new TypeNode(Token::TYPE_F32);
+    }
+    if (lexeme.token == Token::TYPE_BOOL) {
+        return new TypeNode(Token::TYPE_BOOL);
+    }
+    if (lexeme.token == Token::ID) {
+        return new TypeNode(Token::ID, lexeme.symbol);
+    }
+    std::cout << "Could not parse type\n";
     return nullptr;
 }
 

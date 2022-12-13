@@ -4,8 +4,8 @@
   - expr_list ';' expr
   - expr
 - var_decl_expr
-  - 'var' id '$' id
-  - 'var' id '$' id ':=' expr
+  - 'var' id '$' type
+  - 'var' id '$' type ':=' expr
 - fn_decl_expr
   - 'fn' id ( fn_param_list ) '->' type block_expr
 - fn_param_list
@@ -13,7 +13,7 @@
   - fn_param
   - **empty**
 - fn_param
-  - id '$' id
+  - id '$' type
 - assign_expr
   - id ':=' expr
 - expr
@@ -37,6 +37,11 @@
 - bin_expr
   - bin_expr binop term
   - term
+- type
+  - 'i32'
+  - 'f32'
+  - 'bool'
+  - id
 - term
   - id
   - num
@@ -62,8 +67,8 @@
   - ';' expr expr_list_post
   - **empty**
 - var_decl_expr
-  - 'var' id '$' id
-  - 'var' id '$' id ':=' expr
+  - 'var' id '$' type
+  - 'var' id '$' type ':=' expr
 - fn_decl_expr
   - 'fn' id ( fn_param_list ) '->' type block_expr
 - fn_param_list
@@ -73,7 +78,7 @@
   - ',' fn_param fn_param_list_post
   - **empty**
 - fn_param
-  - id '$' id
+  - id '$' type
 - assign_expr
   - id ':=' expr
 - expr
@@ -99,6 +104,11 @@
 - bin_expr_rhs
   - binop bin_expr bin_expr_rhs
   - **empty**
+- type
+  - 'i32'
+  - 'f32'
+  - 'bool'
+  - id
 - term
   - id
   - num

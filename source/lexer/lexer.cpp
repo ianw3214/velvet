@@ -17,6 +17,10 @@ namespace {
         { "loop", Token::LOOP },
         { "var", Token::VAR_DECL },
         { "fn", Token::FN_DECL },
+        // types
+        { "i32" , Token::TYPE_I32 },
+        { "f32" , Token::TYPE_F32 },
+        { "bool" , Token::TYPE_BOOL },
         // TEMPORARY, remove when lexer can peek ahead more than 1 token
         { "assign", Token::ASSIGN_DECL }
     };
@@ -150,7 +154,7 @@ std::pair<int, Token> _advanceLookahead(int lookahead) {
     case '8':
     case '9':
     {
-        while ((lookahead_char >= '0' && lookahead_char <= '9') && lookahead < currString.size()) {
+        while (((lookahead_char >= '0' && lookahead_char <= '9') || lookahead_char == '.') && lookahead < currString.size()) {
             lookahead_char = currString[++lookahead];
         }
         token = Token::NUM;

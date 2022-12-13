@@ -23,5 +23,6 @@ namespace Parser {
     ASTNode* ParseRelExpr();
     ASTNode* ParseBinExpr();
     ASTNode* ParseBinExprRHS(ASTNode* left);
+    ASTNode* ParseType();
     ASTNode* ParseTerm();
 }
