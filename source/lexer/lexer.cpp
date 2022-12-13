@@ -154,7 +154,7 @@ std::pair<int, Token> _advanceLookahead(int lookahead) {
     case '8':
     case '9':
     {
-        while ((lookahead_char >= '0' && lookahead_char <= '9') && lookahead < currString.size()) {
+        while (((lookahead_char >= '0' && lookahead_char <= '9') || lookahead_char == '.') && lookahead < currString.size()) {
             lookahead_char = currString[++lookahead];
         }
         token = Token::NUM;

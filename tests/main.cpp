@@ -51,3 +51,7 @@ TEST_CASE("Loop expression lexes correctly", "[lexer]") {
 TEST_CASE("Commas lex correctly", "[lexer]") {
 	_verifyInputStringGeneratesTokens("a, b, c", { Token::ID, Token::COMMA, Token::ID, Token::COMMA, Token::ID });
 }
+
+TEST_CASE("Numbers with decimals lex correctly", "[lexer]") {
+	_verifyInputStringGeneratesTokens("11.11, 22.22, 33.33", { Token::NUM, Token::COMMA, Token::NUM, Token::COMMA, Token::NUM });
+}

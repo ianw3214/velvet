@@ -109,7 +109,14 @@ llvm::Value* IdentifierNode::Codegen() {
 llvm::Value* NumberNode::Codegen() {
 	// TODO: This should be converted during parse?
 	// TODO: This should have different llvm type depending on context
-	return llvm::ConstantFP::get(*sContext, llvm::APFloat(std::stof(mNumber)));
+	// TODO: There is probably a better way of doing this
+	if (mNumber.find('.') == std::string::npos) {
+		// TODO: Set numbits based on context
+		return llvm::ConstantInt::get(*sContext, llvm::APInt(32, std::stoi(mNumber)));
+	}
+	else {
+		return llvm::ConstantFP::get(*sContext, llvm::APFloat(std::stof(mNumber)));
+	}
 }
 
 llvm::Value* BlockExpressionNode::Codegen() {
