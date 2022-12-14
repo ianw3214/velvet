@@ -46,12 +46,12 @@ int main() {
             std::cout << "VISITED LOOP EXPR NODE\n";
             stack.push_back(loopExpr->mBlockNode);
         }
-        if (RelationalOperatorNode* relOp = dynamic_cast<RelationalOperatorNode*>(top)) {
+        if (RelationalExpressionNode* relOp = dynamic_cast<RelationalExpressionNode*>(top)) {
             std::cout << "VISITED REL OPERATOR NODE: " << "relOp->mOperator" << '\n';
             stack.push_back(relOp->mRight);
             stack.push_back(relOp->mLeft);
         }
-        if (BinaryOperatorNode* binOp = dynamic_cast<BinaryOperatorNode*>(top)) {
+        if (BinaryExpressionNode* binOp = dynamic_cast<BinaryExpressionNode*>(top)) {
             std::cout << "VISITED REL OPERATOR NODE: " << "binOp->mOperator" << '\n';
             stack.push_back(binOp->mRight);
             stack.push_back(binOp->mLeft);

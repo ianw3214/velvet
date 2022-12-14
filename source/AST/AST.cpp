@@ -185,11 +185,11 @@ llvm::Value* LoopExpressionNode::Codegen() {
 	return blockExpressionValue;
 }
 
-llvm::Value* RelationalOperatorNode::Codegen() {
+llvm::Value* RelationalExpressionNode::Codegen() {
 	return nullptr;
 }
 
-llvm::Value* BinaryOperatorNode::Codegen() {
+llvm::Value* BinaryExpressionNode::Codegen() {
 	llvm::Value* left = mLeft->Codegen();
 	llvm::Value* right = mRight->Codegen();
 	if (!left || !right) {
@@ -232,8 +232,7 @@ llvm::Value* VariableDeclarationNode::Codegen() {
 	else {
 		initVal = llvm::ConstantFP::get(*sContext, llvm::APFloat(0.0f));
 	}
-	TypeNode* type = dynamic_cast<TypeNode*>(mType);
-	llvm::AllocaInst* allocaInst = CreateEntryBlockAlloca(parent, mIdentifier, type->mTypeClass);
+	llvm::AllocaInst* allocaInst = CreateEntryBlockAlloca(parent, mIdentifier, mType->mTypeClass);
 	sBuilder->CreateStore(initVal, allocaInst);
 
 	sNamedValues[mIdentifier] = allocaInst;
@@ -260,18 +259,14 @@ llvm::Value* ExpressionListNode::Codegen() {
 
 llvm::Value* FunctionDeclNode::Codegen() {
 	// TODO: Actually handle what the types should be
-	FunctionParamListNode* params = dynamic_cast<FunctionParamListNode*>(mParamList);
 	std::vector<llvm::Type*> paramTypes;
-	if (params) {
-		std::transform(params->mParams.cbegin(), params->mParams.cend(), std::back_inserter(paramTypes), [](ASTNode* rawParam) {
-			FunctionParamNode* param = dynamic_cast<FunctionParamNode*>(rawParam);
-			TypeNode* type = dynamic_cast<TypeNode*>(param->mType);
-			return GetRawLLVMType(type->mTypeClass);
+	if (mParamList) {
+		std::transform(mParamList->mParams.cbegin(), mParamList->mParams.cend(), std::back_inserter(paramTypes), [](FunctionParamNode* rawParam) {
+			return GetRawLLVMType(rawParam->mType->mTypeClass);
 		});
 	}
 
-	TypeNode* returnType = dynamic_cast<TypeNode*>(mType);
-	llvm::FunctionType* funcType = llvm::FunctionType::get(GetRawLLVMType(returnType->mTypeClass), paramTypes, false);
+	llvm::FunctionType* funcType = llvm::FunctionType::get(GetRawLLVMType(mType->mTypeClass), paramTypes, false);
 	llvm::Function* func = llvm::Function::Create(funcType, llvm::Function::ExternalLinkage, mName, sModule.get());
 
 	// Create basic block to start insertion into
@@ -280,9 +275,8 @@ llvm::Value* FunctionDeclNode::Codegen() {
 
 	unsigned int index = 0;
 	for (auto& arg : func->args()) {
-		FunctionParamNode* param = dynamic_cast<FunctionParamNode*>(params->mParams[index]);
-		TypeNode* type = dynamic_cast<TypeNode*>(param->mType);
-		llvm::AllocaInst* allocaInst = CreateEntryBlockAlloca(func, param->mName, type->mTypeClass);
+		FunctionParamNode* param = mParamList->mParams[index];
+		llvm::AllocaInst* allocaInst = CreateEntryBlockAlloca(func, param->mName, param->mType->mTypeClass);
 		sBuilder->CreateStore(&arg, allocaInst);
 		sNamedValues[param->mName] = allocaInst;
 		index++;

@@ -8,21 +8,21 @@
 namespace Parser {
 	ASTNode* Parse();
 
-    ASTNode* ParseExprList();
-    ASTNode* ParseExprListPost();
-    ASTNode* ParseFunctionDeclaration();
-    ASTNode* ParseFunctionParamList();
-    ASTNode* ParseFunctionParamListPost();
-    ASTNode* ParseFunctionParam();
-    ASTNode* ParseVariableDeclaration();
-    ASTNode* ParseAssignmentExpr();
+    ExpressionListNode* ParseExprList();
+    ExpressionListNode* ParseExprListPost();
+    FunctionDeclNode* ParseFunctionDeclaration();
+    FunctionParamListNode* ParseFunctionParamList();
+    FunctionParamListNode* ParseFunctionParamListPost();
+    FunctionParamNode* ParseFunctionParam();
+    VariableDeclarationNode* ParseVariableDeclaration();
+    AssignmentExpressionNode* ParseAssignmentExpr();
     ASTNode* ParseExpr();
-    ASTNode* ParseBlockExpr();
-    ASTNode* ParseIfExpr();
-    ASTNode* ParseLoopExpr();
+    BlockExpressionNode* ParseBlockExpr();
+    IfExpressionNode* ParseIfExpr();
+    LoopExpressionNode* ParseLoopExpr();
     ASTNode* ParseRelExpr();
     ASTNode* ParseBinExpr();
     ASTNode* ParseBinExprRHS(ASTNode* left);
-    ASTNode* ParseType();
+    TypeNode* ParseType();
     ASTNode* ParseTerm();
 }

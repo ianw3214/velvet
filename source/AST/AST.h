@@ -34,11 +34,28 @@ public:
     llvm::Value* Codegen() override;
 };
 
+class TypeNode : public ASTNode {
+public:
+    Token mTypeClass;
+    std::string mIdentifier;
+
+    TypeNode(Token typeClass, const std::string& identifier = "") : mTypeClass(typeClass), mIdentifier(identifier) {}
+    llvm::Value* Codegen() override;
+};
+
+class ExpressionListNode : public ASTNode {
+public:
+    std::vector<ASTNode*> mExpressions;
+
+    ExpressionListNode(std::vector<ASTNode*>&& expressions) : mExpressions(expressions) {}
+    llvm::Value* Codegen() override;
+};
+
 class BlockExpressionNode : public ASTNode {
 public:
-    ASTNode* mExpressionList;
+    ExpressionListNode* mExpressionList;
 
-    BlockExpressionNode(ASTNode* expressionList) : mExpressionList(expressionList) {}
+    BlockExpressionNode(ExpressionListNode* expressionList) : mExpressionList(expressionList) {}
     llvm::Value* Codegen() override;
 };
 
@@ -54,39 +71,39 @@ public:
 
 class LoopExpressionNode : public ASTNode {
 public:
-    ASTNode* mBlockNode;
+    BlockExpressionNode* mBlockNode;
 
-    LoopExpressionNode(ASTNode* block) : mBlockNode(block) {}
+    LoopExpressionNode(BlockExpressionNode* block) : mBlockNode(block) {}
     llvm::Value* Codegen() override;
 };
 
-class RelationalOperatorNode : public ASTNode {
+class RelationalExpressionNode: public ASTNode {
 public:
     ASTNode* mLeft;
     ASTNode* mRight;
     Token mOperator;
 
-    RelationalOperatorNode(ASTNode* left, ASTNode* right, Token op) : mLeft(left), mRight(right), mOperator(op) {}
+    RelationalExpressionNode(ASTNode* left, ASTNode* right, Token op) : mLeft(left), mRight(right), mOperator(op) {}
     llvm::Value* Codegen() override;
 };
 
-class BinaryOperatorNode : public ASTNode {
+class BinaryExpressionNode : public ASTNode {
 public:
     ASTNode* mLeft;
     ASTNode* mRight;
     Token mOperator;
 
-    BinaryOperatorNode(ASTNode* left, ASTNode* right, Token op) : mLeft(left), mRight(right), mOperator(op) {}
+    BinaryExpressionNode(ASTNode* left, ASTNode* right, Token op) : mLeft(left), mRight(right), mOperator(op) {}
     llvm::Value* Codegen() override;
 };
 
 class VariableDeclarationNode : public ASTNode {
 public:
     std::string mIdentifier;
-    ASTNode* mType;
+    TypeNode* mType;
     ASTNode* mExpression;
 
-    VariableDeclarationNode(const std::string id, ASTNode* type, ASTNode* expr) : mIdentifier(id), mType(type), mExpression(expr) {}
+    VariableDeclarationNode(const std::string id, TypeNode* type, ASTNode* expr) : mIdentifier(id), mType(type), mExpression(expr) {}
     llvm::Value* Codegen() override;
 };
 
@@ -99,48 +116,31 @@ public:
     llvm::Value* Codegen() override;
 };
 
-class ExpressionListNode : public ASTNode {
+class FunctionParamNode : public ASTNode {
 public:
-    std::vector<ASTNode*> mExpressions;
+    std::string mName;
+    TypeNode* mType;
 
-    ExpressionListNode(std::vector<ASTNode*>&& expressions) : mExpressions(expressions) {}
+    FunctionParamNode(const std::string& id, TypeNode* type) : mName(id), mType(type) {}
+    llvm::Value* Codegen() override;
+};
+
+class FunctionParamListNode : public ASTNode {
+public:
+    std::vector<FunctionParamNode*> mParams;
+
+    FunctionParamListNode(std::vector<FunctionParamNode*>&& params) : mParams(params) {}
     llvm::Value* Codegen() override;
 };
 
 class FunctionDeclNode : public ASTNode {
 public:
     std::string mName;
-    ASTNode* mType;
-    ASTNode* mParamList;
-    ASTNode* mBlockExpr;
+    TypeNode* mType;
+    FunctionParamListNode* mParamList;
+    BlockExpressionNode* mBlockExpr;
 
-    FunctionDeclNode(const std::string& name, ASTNode* type, ASTNode* paramList, ASTNode* blockExpr) : mName(name), mType(type), mParamList(paramList), mBlockExpr(blockExpr) {}
-    llvm::Value* Codegen() override;
-};
-
-class FunctionParamNode : public ASTNode {
-public:
-    std::string mName;
-    ASTNode* mType;
-
-    FunctionParamNode(const std::string& id, ASTNode* type) : mName(id), mType(type) {}
-    llvm::Value* Codegen() override;
-};
-
-class FunctionParamListNode : public ASTNode {
-public:
-    std::vector<ASTNode*> mParams;
-
-    FunctionParamListNode(std::vector<ASTNode*>&& params) : mParams(params) {}
-    llvm::Value* Codegen() override;
-};
-
-class TypeNode : public ASTNode {
-public:
-    Token mTypeClass;
-    std::string mIdentifier;
-
-    TypeNode(Token typeClass, const std::string& identifier = "") : mTypeClass(typeClass), mIdentifier(identifier) {}
+    FunctionDeclNode(const std::string& name, TypeNode* type, FunctionParamListNode* paramList, BlockExpressionNode* blockExpr) : mName(name), mType(type), mParamList(paramList), mBlockExpr(blockExpr) {}
     llvm::Value* Codegen() override;
 };
 
