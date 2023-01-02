@@ -193,6 +193,11 @@ llvm::Value* BinaryExpressionNode::Codegen() {
 	llvm::Value* left = mLeft->Codegen();
 	llvm::Value* right = mRight->Codegen();
 	if (!left || !right) {
+		// TODO: Error
+		return nullptr;
+	}
+	if (left->getType() != right->getType()) {
+		// TODO: Error
 		return nullptr;
 	}
 	switch (mOperator) {
@@ -205,16 +210,30 @@ llvm::Value* BinaryExpressionNode::Codegen() {
 		}
 	} break;
 	case Token::MINUS: {
-		return sBuilder->CreateFAdd(left, right, "subtmp");
+		if (left->getType()->isFloatTy()) {
+			return sBuilder->CreateFSub(left, right, "subtmp");
+		}
+		else {
+			return sBuilder->CreateSub(left, right, "subtmp");
+		}
 	} break;
 	case Token::MULTIPLY: {
-		return sBuilder->CreateFAdd(left, right, "multmp");
+		if (left->getType()->isFloatTy()) {
+			return sBuilder->CreateFMul(left, right, "multmp");
+		}
+		else {
+			return sBuilder->CreateMul(left, right, "multmp");
+		}
 	} break;
-		/*
 	case Token::DIVIDE: {
-		return sBuilder->CreateFAdd(left, right, "divtmp");
+		if (left->getType()->isFloatTy()) {
+			return sBuilder->CreateFDiv(left, right, "divtmp");
+		}
+		else {
+			// TODO: Figure out which div to use here
+			return sBuilder->CreateFDiv(left, right, "divtmp");
+		}
 	} break;
-	*/
 	}
 	return nullptr;
 }

@@ -19,8 +19,8 @@ int main() {
     // Lexer::LoadInputString("fn main(argc $ int, argv $ str) -> type { var test $ type := 15; assign argc := 15; loop { if argc then test else argc } }");
     // Lexer::LoadInputString("fn sum(a $ i32, b $ i32) -> i32 { a + b }");
     // Lexer::LoadInputString("fn testfunc() -> i32 { var testvar $ i32 := 10; testvar + 10 }");
-    // Lexer::LoadInputString("fn sum(a $ i32, b $ i32) -> i32 { a + b }");
-    Lexer::LoadInputString("fn toOne(num $ i32) -> i32 { if num then 1 else 0 }");
+    Lexer::LoadInputString("fn sum(a $ i32, b $ i32) -> i32 { a * b }");
+    // Lexer::LoadInputString("fn toOne(num $ i32) -> i32 { if num then 1 else 0 }");
     
     ASTNode * base = Parser::Parse();
 
@@ -51,10 +51,10 @@ int main() {
             stack.push_back(relOp->mRight);
             stack.push_back(relOp->mLeft);
         }
-        if (BinaryExpressionNode* binOp = dynamic_cast<BinaryExpressionNode*>(top)) {
-            std::cout << "VISITED REL OPERATOR NODE: " << "binOp->mOperator" << '\n';
-            stack.push_back(binOp->mRight);
-            stack.push_back(binOp->mLeft);
+        if (BinaryExpressionNode* binExpr = dynamic_cast<BinaryExpressionNode*>(top)) {
+            std::cout << "VISITED BINARY EXPRESSION NODE: " << "binExpr->mOperator" << '\n';
+            stack.push_back(binExpr->mRight);
+            stack.push_back(binExpr->mLeft);
         }
         if (AssignmentExpressionNode* assignExpr = dynamic_cast<AssignmentExpressionNode*>(top)) {
             std::cout << "VISITED ASSIGNMENT STATEMENT NODE: " << assignExpr->mIdentifier << '\n';

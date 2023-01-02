@@ -14,7 +14,7 @@ namespace {
 
     bool _isBinaryOperator(Token token) {
         constexpr int start_index = static_cast<int>(Token::PLUS);
-        constexpr int end_index = static_cast<int>(Token::MINUS);
+        constexpr int end_index = static_cast<int>(Token::DIVIDE);
         const int target = static_cast<int>(token);
         return target >= start_index && target <= end_index;
     }
@@ -110,7 +110,9 @@ FunctionParamListNode* Parser::ParseFunctionParamListPost() {
         FunctionParamListNode* paramPost = ParseFunctionParamListPost();
         std::vector<FunctionParamNode*> params = { param };
         // TODO: There's probably a more efficient way to do this
-        params.insert(params.end(), paramPost->mParams.begin(), paramPost->mParams.end());
+        if (paramPost) {
+            params.insert(params.end(), paramPost->mParams.begin(), paramPost->mParams.end());
+        }
         return new FunctionParamListNode(std::move(params));
     }
     return nullptr;
