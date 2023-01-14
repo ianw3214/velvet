@@ -46,10 +46,7 @@ void printLLVM() {
 	std::string targetError;
 	const std::string targetTriple = llvm::sys::getDefaultTargetTriple();
 	const llvm::Target* target = llvm::TargetRegistry::lookupTarget(targetTriple, targetError);
-	if (!target) {
-		// TODO: Error handling
-		return;
-	}
+	ASSERT(target, "LLVM target not found", targetTriple);
 
 	const std::string CPU = "generic";
 	const std::string features = "";
@@ -63,18 +60,15 @@ void printLLVM() {
 	std::string fileName = "output.o";
 	std::error_code errorCode;
 	llvm::raw_fd_ostream destination(fileName, errorCode, llvm::sys::fs::OF_None);
-	if (errorCode) {
-		llvm::errs() << "Could not open file: " << errorCode.message();
-		return;
-	}
+	ASSERT(errorCode, "Could not open file", errorCode.message());
 
-	llvm::legacy::PassManager pass;
+	llvm::legacy::PassManager passManager;
 	llvm::CodeGenFileType fileType = llvm::CGFT_ObjectFile;
-	if (targetMachine->addPassesToEmitFile(pass, destination, nullptr, fileType)) {
+	if (targetMachine->addPassesToEmitFile(passManager, destination, nullptr, fileType)) {
 		llvm::errs() << "TargetMachine can't emit file of this type: ";
 		return;
 	}
-	pass.run(*sModule);
+	passManager.run(*sModule);
 	destination.flush();
 }
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -278,13 +272,14 @@ llvm::Value* AssignmentExpressionNode::Codegen() {
 llvm::Value* ExpressionListNode::Codegen() {
 	llvm::Value* last = nullptr;
 	for (ASTNode* node : mExpressions) {
+		ASSERT(node, "Empty node should not be in expression list");
 		last = node->Codegen();
 	}
 	return last;
 }
 
 llvm::Value* FunctionDeclNode::Codegen() {
-	// TODO: Actually handle what the types should be
+	// Transform the parameter type list into LLVM types
 	std::vector<llvm::Type*> paramTypes;
 	if (mParamList) {
 		std::transform(mParamList->mParams.cbegin(), mParamList->mParams.cend(), std::back_inserter(paramTypes), [](FunctionParamNode* rawParam) {

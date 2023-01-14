@@ -6,16 +6,7 @@
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 
-int main() {
-    // Lexer::LoadInputString("if something 135 then something else something");
-    // Lexer::LoadInputString("a > test <> 100 = 1000");
-    // Lexer::LoadInputString("( a > test ) <> ( 100 = 1000 )");
-    // Lexer::LoadInputString("if a then if x then y else c");
-    // Lexer::LoadInputString("if a then if x then y - 30 else c + 100");
-    // Lexer::LoadInputString("var test $ type; test := a - b + 1000;");
-    // Lexer::LoadInputString("fn testfunc () -> type { var test $ type; test := a - b + 1000; if 10 + 10 then b else c };");
-    // Lexer::LoadInputString("fn testfunc () -> type { if 10 + 10 then 20 else 30 };");
-    // Lexer::LoadInputString("fn main() -> type { loop { if 100 then 15 else 20 } }");
+int main(int argc, char* argv[]) {
     // Lexer::LoadInputString("fn main(argc $ int, argv $ str) -> type { var test $ type := 15; assign argc := 15; loop { if argc then test else argc } }");
     // Lexer::LoadInputString("fn sum(a $ i32, b $ i32) -> i32 { a + b }");
     // Lexer::LoadInputString("fn testfunc() -> i32 { var testvar $ i32 := 10; testvar + 10 }");

@@ -22,7 +22,6 @@ namespace {
 
 ASTNode* Parser::Parse() {
     return ParseExprList();
-    // return ParseExpr();
 }
 
 ExpressionListNode* Parser::ParseExprList() {
