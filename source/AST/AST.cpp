@@ -16,6 +16,8 @@
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
 
+#include <assert.hpp>
+
 static std::unique_ptr<llvm::LLVMContext> sContext;
 static std::unique_ptr<llvm::Module> sModule;
 static std::unique_ptr<llvm::IRBuilder<>> sBuilder;
@@ -25,9 +27,11 @@ static std::unordered_map<std::string, llvm::AllocaInst*> sNamedValues;
 // DEBUG
 void initLLVM() {
 	sContext = std::make_unique<llvm::LLVMContext>();
+	ASSERT(sContext, "LLVM Context should not be null");
 	sModule = std::make_unique<llvm::Module>("foo", *sContext);
-
+	ASSERT(sModule, "LLVM module should not be null");
 	sBuilder = std::make_unique<llvm::IRBuilder<>>(*sContext);
+	ASSERT(sBuilder, "LLVM Builder should not be null");
 }
 
 void printLLVM() {
@@ -102,8 +106,11 @@ llvm::Value* IdentifierNode::Codegen() {
 	llvm::AllocaInst* value = sNamedValues[mIdentifier];
 	if (!value) {
 		// TODO: Error
+		return nullptr;
 	}
-	return sBuilder->CreateLoad(value->getAllocatedType(), value, mIdentifier.c_str());
+	else {
+		return sBuilder->CreateLoad(value->getAllocatedType(), value, mIdentifier.c_str());
+	}
 }
 
 llvm::Value* NumberNode::Codegen() {
