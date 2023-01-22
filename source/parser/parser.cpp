@@ -14,7 +14,7 @@ namespace {
 
     bool _isBinaryOperator(Token token) {
         constexpr int start_index = static_cast<int>(Token::PLUS);
-        constexpr int end_index = static_cast<int>(Token::MINUS);
+        constexpr int end_index = static_cast<int>(Token::DIVIDE);
         const int target = static_cast<int>(token);
         return target >= start_index && target <= end_index;
     }
@@ -22,25 +22,24 @@ namespace {
 
 ASTNode* Parser::Parse() {
     return ParseExprList();
-    // return ParseExpr();
 }
 
-ASTNode* Parser::ParseExprList() {
+ExpressionListNode* Parser::ParseExprList() {
     ASTNode* expression = ParseExpr();
     if (!expression) {
         std::cout << "Error! Expected expression to be parsed\n";
         return nullptr;
     }
-    ASTNode* expression_list_post = ParseExprListPost();
+    ExpressionListNode* expression_list_post = ParseExprListPost();
     // TODO: There's probably a more efficient way to do this
     std::vector<ASTNode*> expressions = { expression };
-    if (ExpressionListNode* list = dynamic_cast<ExpressionListNode*>(expression_list_post)) {
-        expressions.insert(expressions.end(), list->mExpressions.begin(), list->mExpressions.end());
+    if (expression_list_post) {
+        expressions.insert(expressions.end(), expression_list_post->mExpressions.begin(), expression_list_post->mExpressions.end());
     }
     return new ExpressionListNode(std::move(expressions));
 }
 
-ASTNode* Parser::ParseExprListPost() {
+ExpressionListNode* Parser::ParseExprListPost() {
     Lexeme lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::EXPRESSION_END) {
         return nullptr;
@@ -50,16 +49,16 @@ ASTNode* Parser::ParseExprListPost() {
         std::cout << "Error! Expected expression to be parsed\n";
         return nullptr;
     }
-    ASTNode* expression_list_post = ParseExprListPost();
+    ExpressionListNode* expression_list_post = ParseExprListPost();
     // TODO: There's probably a more efficient way to do this
     std::vector<ASTNode*> expressions = { expression };
-    if (ExpressionListNode* list = dynamic_cast<ExpressionListNode*>(expression_list_post)) {
-        expressions.insert(expressions.end(), list->mExpressions.begin(), list->mExpressions.end());
+    if (expression_list_post) {
+        expressions.insert(expressions.end(), expression_list_post->mExpressions.begin(), expression_list_post->mExpressions.end());
     }
     return new ExpressionListNode(std::move(expressions));
 }
 
-ASTNode* Parser::ParseFunctionDeclaration() {
+FunctionDeclNode* Parser::ParseFunctionDeclaration() {
     Lexeme lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::FN_DECL) {
         std::cout << "Error! Expected function declaration(var)\n";
@@ -73,7 +72,7 @@ ASTNode* Parser::ParseFunctionDeclaration() {
     if (lexeme.token != Token::LEFT_BRACKET) {
         std::cout << "Error! Expected left bracket\n";
     }
-    ASTNode* funcParams = ParseFunctionParamList();
+    FunctionParamListNode* funcParams = ParseFunctionParamList();
     lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::RIGHT_BRACKET) {
         std::cout << "Error! Expected right bracket\n";
@@ -82,42 +81,42 @@ ASTNode* Parser::ParseFunctionDeclaration() {
     if (lexeme.token != Token::FN_TYPE_RESULT) {
         std::cout << "Error! Expected -> for function type result\n";
     }
-    ASTNode* type = ParseType();
-    ASTNode* block = ParseBlockExpr();
+    TypeNode* type = ParseType();
+    BlockExpressionNode* block = ParseBlockExpr();
     return new FunctionDeclNode(identifier, type, funcParams, block);
 }
 
-ASTNode* Parser::ParseFunctionParamList() {
+FunctionParamListNode* Parser::ParseFunctionParamList() {
     Lexeme lexeme = Lexer::peekLexeme();
     if (lexeme.token == Token::ID) {
-        ASTNode* param = ParseFunctionParam();
-        ASTNode* paramPost = ParseFunctionParamListPost();
-        std::vector<ASTNode*> params = { param };
+        FunctionParamNode* param = ParseFunctionParam();
+        FunctionParamListNode* paramPost = ParseFunctionParamListPost();
+        std::vector<FunctionParamNode*> params = { param };
         // TODO: There's probably a more efficient way to do this
-        if (FunctionParamListNode* node = dynamic_cast<FunctionParamListNode*>(paramPost)) {
-            params.insert(params.end(), node->mParams.begin(), node->mParams.end());
+        if (paramPost) {
+            params.insert(params.end(), paramPost->mParams.begin(), paramPost->mParams.end());
         }
         return new FunctionParamListNode(std::move(params));
     }
     return nullptr;
 }
 
-ASTNode* Parser::ParseFunctionParamListPost() {
+FunctionParamListNode* Parser::ParseFunctionParamListPost() {
     Lexeme lexeme = Lexer::peekLexeme();
     if (lexeme.token == Token::COMMA) {
         Lexer::getLexeme();
-        ASTNode* param = ParseFunctionParam();
-        ASTNode* paramPost = ParseFunctionParamListPost();
-        std::vector<ASTNode*> params = { param };
+        FunctionParamNode* param = ParseFunctionParam();
+        FunctionParamListNode* paramPost = ParseFunctionParamListPost();
+        std::vector<FunctionParamNode*> params = { param };
         // TODO: There's probably a more efficient way to do this
-        if (FunctionParamListNode* node = dynamic_cast<FunctionParamListNode*>(paramPost)) {
-            params.insert(params.end(), node->mParams.begin(), node->mParams.end());
+        if (paramPost) {
+            params.insert(params.end(), paramPost->mParams.begin(), paramPost->mParams.end());
         }
         return new FunctionParamListNode(std::move(params));
     }
     return nullptr;
 }
-ASTNode* Parser::ParseFunctionParam() {
+FunctionParamNode* Parser::ParseFunctionParam() {
     Lexeme lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::ID) {
         std::cout << "Error! Expected id token\n";
@@ -127,11 +126,11 @@ ASTNode* Parser::ParseFunctionParam() {
     if (lexeme.token != Token::TYPE_DECL) {
         std::cout << "Error! Expected type declaration ($)\n";
     }
-    ASTNode* type = ParseType();
+    TypeNode* type = ParseType();
     return new FunctionParamNode(identifier, type);
 }
 
-ASTNode* Parser::ParseVariableDeclaration() {
+VariableDeclarationNode* Parser::ParseVariableDeclaration() {
     Lexeme lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::VAR_DECL) {
         std::cout << "Error! Expected variable declaration (var)\n";
@@ -145,7 +144,7 @@ ASTNode* Parser::ParseVariableDeclaration() {
     if (lexeme.token != Token::TYPE_DECL) {
         std::cout << "Error! Expected type declaration ($)\n";
     }
-    ASTNode* type = ParseType();
+    TypeNode* type = ParseType();
     // optional assignment after var declaration
     ASTNode* opt_assign = nullptr;
     lexeme = Lexer::peekLexeme();
@@ -156,7 +155,7 @@ ASTNode* Parser::ParseVariableDeclaration() {
     return new VariableDeclarationNode(identifier, type, opt_assign);
 }
 
-ASTNode* Parser::ParseAssignmentExpr() {
+AssignmentExpressionNode* Parser::ParseAssignmentExpr() {
     Lexer::getLexeme();
     Lexeme lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::ID) {
@@ -201,16 +200,16 @@ ASTNode* Parser::ParseExpr() {
     return nullptr;
 }
 
-ASTNode* Parser::ParseBlockExpr() {
+BlockExpressionNode* Parser::ParseBlockExpr() {
     Lexeme lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::LEFT_CURLY_BRACKET) {
         std::cout << "ERROR! Expected left curly bracket\n";
     }
-    ASTNode* expressions = ParseExprList();
+    ExpressionListNode* expressions = ParseExprList();
     return new BlockExpressionNode(expressions);
 }
 
-ASTNode* Parser::ParseIfExpr() {
+IfExpressionNode* Parser::ParseIfExpr() {
     Lexeme lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::IF) {
         std::cout << "ERROR! Expected 'if'\n";
@@ -230,12 +229,12 @@ ASTNode* Parser::ParseIfExpr() {
     return new IfExpressionNode(condition, then, opt_else);
 }
 
-ASTNode* Parser::ParseLoopExpr() {
+LoopExpressionNode* Parser::ParseLoopExpr() {
     Lexeme lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::LOOP) {
         std::cout << "ERROR! Expected 'loop'\n";
     }
-    ASTNode* block = ParseBlockExpr();
+    BlockExpressionNode* block = ParseBlockExpr();
     return new LoopExpressionNode(block);
 }
 
@@ -245,7 +244,7 @@ ASTNode* Parser::ParseRelExpr() {
     if (_isRelationalOperator(lexeme.token)) {
         Lexer::getLexeme();
         ASTNode* rhs = ParseBinExpr();
-        return new RelationalOperatorNode(lhs, rhs, lexeme.token);
+        return new RelationalExpressionNode(lhs, rhs, lexeme.token);
     }
     return lhs;
 }
@@ -261,14 +260,14 @@ ASTNode* Parser::ParseBinExprRHS(ASTNode* left){
     if (_isBinaryOperator(lexeme.token)) {
         Lexer::getLexeme();
         ASTNode* right = ParseExpr();
-        ASTNode* binop = new BinaryOperatorNode(left, right, lexeme.token);
+        ASTNode* binop = new BinaryExpressionNode(left, right, lexeme.token);
         ASTNode* opt_post = ParseBinExprRHS(binop);
         return opt_post ? opt_post : binop;
     }
     return nullptr;
 }
 
-ASTNode* Parser::ParseType() {
+TypeNode* Parser::ParseType() {
     Lexeme lexeme = Lexer::getLexeme();
     if (lexeme.token == Token::TYPE_I32) {
         return new TypeNode(Token::TYPE_I32);

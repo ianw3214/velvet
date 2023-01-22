@@ -16,6 +16,8 @@
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
 
+#include <assert.hpp>
+
 static std::unique_ptr<llvm::LLVMContext> sContext;
 static std::unique_ptr<llvm::Module> sModule;
 static std::unique_ptr<llvm::IRBuilder<>> sBuilder;
@@ -25,9 +27,11 @@ static std::unordered_map<std::string, llvm::AllocaInst*> sNamedValues;
 // DEBUG
 void initLLVM() {
 	sContext = std::make_unique<llvm::LLVMContext>();
+	ASSERT(sContext, "LLVM Context should not be null");
 	sModule = std::make_unique<llvm::Module>("foo", *sContext);
-
+	ASSERT(sModule, "LLVM module should not be null");
 	sBuilder = std::make_unique<llvm::IRBuilder<>>(*sContext);
+	ASSERT(sBuilder, "LLVM Builder should not be null");
 }
 
 void printLLVM() {
@@ -42,10 +46,7 @@ void printLLVM() {
 	std::string targetError;
 	const std::string targetTriple = llvm::sys::getDefaultTargetTriple();
 	const llvm::Target* target = llvm::TargetRegistry::lookupTarget(targetTriple, targetError);
-	if (!target) {
-		// TODO: Error handling
-		return;
-	}
+	ASSERT(target, "LLVM target not found", targetTriple);
 
 	const std::string CPU = "generic";
 	const std::string features = "";
@@ -59,18 +60,15 @@ void printLLVM() {
 	std::string fileName = "output.o";
 	std::error_code errorCode;
 	llvm::raw_fd_ostream destination(fileName, errorCode, llvm::sys::fs::OF_None);
-	if (errorCode) {
-		llvm::errs() << "Could not open file: " << errorCode.message();
-		return;
-	}
+	ASSERT(errorCode, "Could not open file", errorCode.message());
 
-	llvm::legacy::PassManager pass;
+	llvm::legacy::PassManager passManager;
 	llvm::CodeGenFileType fileType = llvm::CGFT_ObjectFile;
-	if (targetMachine->addPassesToEmitFile(pass, destination, nullptr, fileType)) {
+	if (targetMachine->addPassesToEmitFile(passManager, destination, nullptr, fileType)) {
 		llvm::errs() << "TargetMachine can't emit file of this type: ";
 		return;
 	}
-	pass.run(*sModule);
+	passManager.run(*sModule);
 	destination.flush();
 }
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -102,8 +100,11 @@ llvm::Value* IdentifierNode::Codegen() {
 	llvm::AllocaInst* value = sNamedValues[mIdentifier];
 	if (!value) {
 		// TODO: Error
+		return nullptr;
 	}
-	return sBuilder->CreateLoad(value->getAllocatedType(), value, mIdentifier.c_str());
+	else {
+		return sBuilder->CreateLoad(value->getAllocatedType(), value, mIdentifier.c_str());
+	}
 }
 
 llvm::Value* NumberNode::Codegen() {
@@ -185,14 +186,19 @@ llvm::Value* LoopExpressionNode::Codegen() {
 	return blockExpressionValue;
 }
 
-llvm::Value* RelationalOperatorNode::Codegen() {
+llvm::Value* RelationalExpressionNode::Codegen() {
 	return nullptr;
 }
 
-llvm::Value* BinaryOperatorNode::Codegen() {
+llvm::Value* BinaryExpressionNode::Codegen() {
 	llvm::Value* left = mLeft->Codegen();
 	llvm::Value* right = mRight->Codegen();
 	if (!left || !right) {
+		// TODO: Error
+		return nullptr;
+	}
+	if (left->getType() != right->getType()) {
+		// TODO: Error
 		return nullptr;
 	}
 	switch (mOperator) {
@@ -205,16 +211,30 @@ llvm::Value* BinaryOperatorNode::Codegen() {
 		}
 	} break;
 	case Token::MINUS: {
-		return sBuilder->CreateFAdd(left, right, "subtmp");
+		if (left->getType()->isFloatTy()) {
+			return sBuilder->CreateFSub(left, right, "subtmp");
+		}
+		else {
+			return sBuilder->CreateSub(left, right, "subtmp");
+		}
 	} break;
 	case Token::MULTIPLY: {
-		return sBuilder->CreateFAdd(left, right, "multmp");
+		if (left->getType()->isFloatTy()) {
+			return sBuilder->CreateFMul(left, right, "multmp");
+		}
+		else {
+			return sBuilder->CreateMul(left, right, "multmp");
+		}
 	} break;
-		/*
 	case Token::DIVIDE: {
-		return sBuilder->CreateFAdd(left, right, "divtmp");
+		if (left->getType()->isFloatTy()) {
+			return sBuilder->CreateFDiv(left, right, "divtmp");
+		}
+		else {
+			// TODO: Figure out which div to use here
+			return sBuilder->CreateFDiv(left, right, "divtmp");
+		}
 	} break;
-	*/
 	}
 	return nullptr;
 }
@@ -232,8 +252,7 @@ llvm::Value* VariableDeclarationNode::Codegen() {
 	else {
 		initVal = llvm::ConstantFP::get(*sContext, llvm::APFloat(0.0f));
 	}
-	TypeNode* type = dynamic_cast<TypeNode*>(mType);
-	llvm::AllocaInst* allocaInst = CreateEntryBlockAlloca(parent, mIdentifier, type->mTypeClass);
+	llvm::AllocaInst* allocaInst = CreateEntryBlockAlloca(parent, mIdentifier, mType->mTypeClass);
 	sBuilder->CreateStore(initVal, allocaInst);
 
 	sNamedValues[mIdentifier] = allocaInst;
@@ -253,25 +272,22 @@ llvm::Value* AssignmentExpressionNode::Codegen() {
 llvm::Value* ExpressionListNode::Codegen() {
 	llvm::Value* last = nullptr;
 	for (ASTNode* node : mExpressions) {
+		ASSERT(node, "Empty node should not be in expression list");
 		last = node->Codegen();
 	}
 	return last;
 }
 
 llvm::Value* FunctionDeclNode::Codegen() {
-	// TODO: Actually handle what the types should be
-	FunctionParamListNode* params = dynamic_cast<FunctionParamListNode*>(mParamList);
+	// Transform the parameter type list into LLVM types
 	std::vector<llvm::Type*> paramTypes;
-	if (params) {
-		std::transform(params->mParams.cbegin(), params->mParams.cend(), std::back_inserter(paramTypes), [](ASTNode* rawParam) {
-			FunctionParamNode* param = dynamic_cast<FunctionParamNode*>(rawParam);
-			TypeNode* type = dynamic_cast<TypeNode*>(param->mType);
-			return GetRawLLVMType(type->mTypeClass);
+	if (mParamList) {
+		std::transform(mParamList->mParams.cbegin(), mParamList->mParams.cend(), std::back_inserter(paramTypes), [](FunctionParamNode* rawParam) {
+			return GetRawLLVMType(rawParam->mType->mTypeClass);
 		});
 	}
 
-	TypeNode* returnType = dynamic_cast<TypeNode*>(mType);
-	llvm::FunctionType* funcType = llvm::FunctionType::get(GetRawLLVMType(returnType->mTypeClass), paramTypes, false);
+	llvm::FunctionType* funcType = llvm::FunctionType::get(GetRawLLVMType(mType->mTypeClass), paramTypes, false);
 	llvm::Function* func = llvm::Function::Create(funcType, llvm::Function::ExternalLinkage, mName, sModule.get());
 
 	// Create basic block to start insertion into
@@ -280,9 +296,8 @@ llvm::Value* FunctionDeclNode::Codegen() {
 
 	unsigned int index = 0;
 	for (auto& arg : func->args()) {
-		FunctionParamNode* param = dynamic_cast<FunctionParamNode*>(params->mParams[index]);
-		TypeNode* type = dynamic_cast<TypeNode*>(param->mType);
-		llvm::AllocaInst* allocaInst = CreateEntryBlockAlloca(func, param->mName, type->mTypeClass);
+		FunctionParamNode* param = mParamList->mParams[index];
+		llvm::AllocaInst* allocaInst = CreateEntryBlockAlloca(func, param->mName, param->mType->mTypeClass);
 		sBuilder->CreateStore(&arg, allocaInst);
 		sNamedValues[param->mName] = allocaInst;
 		index++;
