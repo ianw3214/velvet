@@ -1,8 +1,8 @@
-# Executable files
-*.exe
-
 # Batch files
 *.bat
 
 # CMake build folder
 build/
+
+*.o
+*.exe

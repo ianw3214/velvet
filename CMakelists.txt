@@ -26,6 +26,7 @@ add_executable(VelvetMain)
 add_subdirectory(source)
 target_link_libraries(VelvetMain Velvet)
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT VelvetMain)
+set_target_properties(VelvetMain PROPERTIES VS_DEBUGGER_COMMAND_ARGUMENTS "test.vv")
 
 add_executable(VelvetTests)
 target_include_directories(VelvetTests PRIVATE source)
