@@ -326,3 +326,11 @@ llvm::Value* FunctionParamListNode::Codegen() {
 llvm::Value* TypeNode::Codegen() {
 	return nullptr;
 }
+
+llvm::Value* FunctionArgumentListNode::Codegen() {
+	return nullptr;
+}
+
+llvm::Value* FunctionCallNode::Codegen() {
+	return nullptr;
+}

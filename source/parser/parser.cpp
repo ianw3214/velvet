@@ -130,6 +130,54 @@ FunctionParamNode* Parser::ParseFunctionParam() {
     return new FunctionParamNode(identifier, type);
 }
 
+FunctionCallNode* Parser::ParseFunctionCall() {
+    Lexeme lexeme = Lexer::getLexeme();
+    if (lexeme.token != Token::CALL_DECL) {
+        std::cout << "Error! Expected call declaration\n";
+    }
+    lexeme = Lexer::getLexeme();
+    if (lexeme.token != Token::ID) {
+        std::cout << "Error! Expected id node\n";
+    }
+    std::string funcName = lexeme.symbol;
+    lexeme = Lexer::getLexeme();
+    if (lexeme.token != Token::LEFT_BRACKET) {
+        std::cout << "Error! Expected left bracket\n";
+    }
+    FunctionArgumentListNode* argList = ParseFunctionArgList();
+    lexeme = Lexer::getLexeme();
+    if (lexeme.token != Token::RIGHT_BRACKET) {
+        std::cout << "Error! Expected right bracket\n";
+    }
+    return new FunctionCallNode(funcName, argList);
+}
+
+FunctionArgumentListNode* Parser::ParseFunctionArgList() {
+    // TODO: Need to check if we can actually parse an expression here
+    ASTNode* expression = ParseExpr();
+    FunctionArgumentListNode* post = ParseFunctionArgListPost();
+    std::vector<ASTNode*> expressions = { expression };
+    if (post) {
+        expressions.insert(expressions.end(), post->mArguments.begin(), post->mArguments.end());
+    }
+    return new FunctionArgumentListNode(std::move(expressions));
+}
+
+FunctionArgumentListNode* Parser::ParseFunctionArgListPost() {
+    Lexeme lexeme = Lexer::peekLexeme();
+    if (lexeme.token == Token::COMMA) {
+        Lexer::getLexeme(); // consume the comma if read
+        ASTNode* expression = ParseExpr();
+        FunctionArgumentListNode* post = ParseFunctionArgListPost();
+        std::vector<ASTNode*> expressions = { expression };
+        if (post) {
+            expressions.insert(expressions.end(), post->mArguments.begin(), post->mArguments.end());
+        }
+        return new FunctionArgumentListNode(std::move(expressions));
+    }
+    return nullptr;
+}
+
 VariableDeclarationNode* Parser::ParseVariableDeclaration() {
     Lexeme lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::VAR_DECL) {
@@ -183,6 +231,9 @@ ASTNode* Parser::ParseExpr() {
     } break;
     case Token::ASSIGN_DECL: {
         return ParseAssignmentExpr();
+    } break;
+    case Token::CALL_DECL: {
+        return ParseFunctionCall();
     } break;
     case Token::LEFT_CURLY_BRACKET: {
         return ParseBlockExpr();

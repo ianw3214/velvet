@@ -22,7 +22,8 @@ namespace {
         { "f32" , Token::TYPE_F32 },
         { "bool" , Token::TYPE_BOOL },
         // TEMPORARY, remove when lexer can peek ahead more than 1 token
-        { "assign", Token::ASSIGN_DECL }
+        { "assign", Token::ASSIGN_DECL },
+        { "call", Token::CALL_DECL }
     };
 
     inline bool _isAlphaNumerical(char c) {

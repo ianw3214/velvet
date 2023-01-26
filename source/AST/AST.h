@@ -144,4 +144,19 @@ public:
     llvm::Value* Codegen() override;
 };
 
-// TODO: AST Node for function calls
+class FunctionArgumentListNode : public ASTNode {
+public:
+    std::vector<ASTNode*> mArguments;
+
+    FunctionArgumentListNode(std::vector<ASTNode*>&& arguments) : mArguments(arguments) {}
+    llvm::Value* Codegen() override;
+};
+
+class FunctionCallNode : public ASTNode {
+public:
+    std::string mFuncName;
+    FunctionArgumentListNode* mArgumentList;
+
+    FunctionCallNode(const std::string& funcName, FunctionArgumentListNode* argumentList) : mFuncName(funcName), mArgumentList(argumentList) {}
+    llvm::Value* Codegen() override;
+};

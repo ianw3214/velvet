@@ -14,6 +14,12 @@
   - **empty**
 - fn_param
   - id '$' type
+- fn_call_expr
+  - id ( fn_arg_list )
+- fn_arg_list
+  - fn_arg_list ',' expr
+  - expr
+  - **empty**
 - assign_expr
   - id ':=' expr
 - expr
@@ -24,6 +30,7 @@
   - if_expr
   - rel_expr
   - loop_expr
+  - fn_call_expr
 - block_expr
   - { expr_list }
 - if_expr
@@ -79,6 +86,14 @@
   - **empty**
 - fn_param
   - id '$' type
+- fn_call_expr
+  - id ( fn_arg_list )
+- fn_arg_list
+  - expr fn_arg_list_post
+  - **empty**
+- fn_arg_list_post
+  - ',' expr fn_arg_list_pos
+  - **empty**
 - assign_expr
   - id ':=' expr
 - expr
@@ -89,6 +104,7 @@
   - if_expr
   - rel_expr
   - loop_expr
+  - fn_call_expr
 - block_expr
   - { expr_list }
 - if_expr

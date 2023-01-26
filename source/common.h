@@ -12,6 +12,7 @@ enum class Token {
     TYPE_DECL,
     FN_DECL,
     ASSIGN_DECL,    // <-- TEMPORARY
+    CALL_DECL,      // <-- TEMPORARY
     ASSIGNMENT,
 
     // keywords

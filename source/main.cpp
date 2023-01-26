@@ -105,11 +105,17 @@ int main(int argc, char* argv[]) {
             if (type->mTypeClass == Token::TYPE_BOOL) std::cout << "VISITED TYPE NODE (bool)\n";
             if (type->mTypeClass == Token::ID) std::cout << "VISITED TYPE NODE (" + type->mIdentifier + ")\n";
         }
+        if (FunctionCallNode* funcCall = dynamic_cast<FunctionCallNode*>(top)) {
+            std::cout << "VISITED FUNCTION CALL " << funcCall->mFuncName << '\n';
+            for (ASTNode* node : funcCall->mArgumentList->mArguments) {
+                stack.push_back(node);
+            }
+        }
     }
 
-    initLLVM();
-    base->Codegen();
-    printLLVM();
+    // initLLVM();
+    // base->Codegen();
+    // printLLVM();
 
     return 0;
 };

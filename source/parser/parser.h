@@ -14,6 +14,9 @@ namespace Parser {
     FunctionParamListNode* ParseFunctionParamList();
     FunctionParamListNode* ParseFunctionParamListPost();
     FunctionParamNode* ParseFunctionParam();
+    FunctionCallNode* ParseFunctionCall();
+    FunctionArgumentListNode* ParseFunctionArgList();
+    FunctionArgumentListNode* ParseFunctionArgListPost();
     VariableDeclarationNode* ParseVariableDeclaration();
     AssignmentExpressionNode* ParseAssignmentExpr();
     ASTNode* ParseExpr();
