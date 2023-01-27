@@ -16,22 +16,18 @@
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
 
-#include <assert.hpp>
-
 static std::unique_ptr<llvm::LLVMContext> sContext;
 static std::unique_ptr<llvm::Module> sModule;
 static std::unique_ptr<llvm::IRBuilder<>> sBuilder;
 static std::unordered_map<std::string, llvm::AllocaInst*> sNamedValues;
+static std::unordered_map<std::string, llvm::Function*> sFunctions;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // DEBUG
 void initLLVM() {
 	sContext = std::make_unique<llvm::LLVMContext>();
-	ASSERT(sContext, "LLVM Context should not be null");
 	sModule = std::make_unique<llvm::Module>("foo", *sContext);
-	ASSERT(sModule, "LLVM module should not be null");
 	sBuilder = std::make_unique<llvm::IRBuilder<>>(*sContext);
-	ASSERT(sBuilder, "LLVM Builder should not be null");
 }
 
 void printLLVM() {
@@ -46,7 +42,9 @@ void printLLVM() {
 	std::string targetError;
 	const std::string targetTriple = llvm::sys::getDefaultTargetTriple();
 	const llvm::Target* target = llvm::TargetRegistry::lookupTarget(targetTriple, targetError);
-	ASSERT(target, "LLVM target not found", targetTriple);
+	if (!target) {
+		// TODO: Assert...
+	}
 
 	const std::string CPU = "generic";
 	const std::string features = "";
@@ -60,7 +58,9 @@ void printLLVM() {
 	std::string fileName = "output.o";
 	std::error_code errorCode;
 	llvm::raw_fd_ostream destination(fileName, errorCode, llvm::sys::fs::OF_None);
-	ASSERT(errorCode, "Could not open file", errorCode.message());
+	if (!errorCode) {
+		// TODO: Assert...
+	}
 
 	llvm::legacy::PassManager passManager;
 	llvm::CodeGenFileType fileType = llvm::CGFT_ObjectFile;
@@ -272,13 +272,13 @@ llvm::Value* AssignmentExpressionNode::Codegen() {
 llvm::Value* ExpressionListNode::Codegen() {
 	llvm::Value* last = nullptr;
 	for (ASTNode* node : mExpressions) {
-		ASSERT(node, "Empty node should not be in expression list");
 		last = node->Codegen();
 	}
 	return last;
 }
 
 llvm::Value* FunctionDeclNode::Codegen() {
+	// TODO: Need more validation here
 	// Transform the parameter type list into LLVM types
 	std::vector<llvm::Type*> paramTypes;
 	if (mParamList) {
@@ -307,8 +307,9 @@ llvm::Value* FunctionDeclNode::Codegen() {
 		sBuilder->CreateRet(value);
 
 		llvm::verifyFunction(*func);
-		return func;
+		// return func;
 	}
+	sFunctions[mName] = func;
 
 	// handle error
 	// func->eraseFromParent();
@@ -332,5 +333,14 @@ llvm::Value* FunctionArgumentListNode::Codegen() {
 }
 
 llvm::Value* FunctionCallNode::Codegen() {
-	return nullptr;
+	// generate code for arguments first
+	std::vector<llvm::Value*> arguments;
+	for (ASTNode* argument : mArgumentList->mArguments) {
+		arguments.push_back(argument->Codegen());
+	}
+
+	llvm::Function* func = sFunctions[mFuncName];
+	// TODO: Validate func name/arguments
+	llvm::CallInst* call = sBuilder->CreateCall(func, arguments);
+	return call;
 }
