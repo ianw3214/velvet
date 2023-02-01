@@ -107,8 +107,10 @@ int main(int argc, char* argv[]) {
         }
         if (FunctionCallNode* funcCall = dynamic_cast<FunctionCallNode*>(top)) {
             std::cout << "VISITED FUNCTION CALL " << funcCall->mFuncName << '\n';
-            for (ASTNode* node : funcCall->mArgumentList->mArguments) {
-                stack.push_back(node);
+            if (funcCall->mArgumentList) {
+                for (ASTNode* node : funcCall->mArgumentList->mArguments) {
+                    stack.push_back(node);
+                }
             }
         }
     }

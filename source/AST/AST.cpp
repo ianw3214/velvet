@@ -335,8 +335,10 @@ llvm::Value* FunctionArgumentListNode::Codegen() {
 llvm::Value* FunctionCallNode::Codegen() {
 	// generate code for arguments first
 	std::vector<llvm::Value*> arguments;
-	for (ASTNode* argument : mArgumentList->mArguments) {
-		arguments.push_back(argument->Codegen());
+	if (mArgumentList) {
+		for (ASTNode* argument : mArgumentList->mArguments) {
+			arguments.push_back(argument->Codegen());
+		}
 	}
 
 	llvm::Function* func = sFunctions[mFuncName];

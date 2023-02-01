@@ -144,6 +144,11 @@ FunctionCallNode* Parser::ParseFunctionCall() {
     if (lexeme.token != Token::LEFT_BRACKET) {
         std::cout << "Error! Expected left bracket\n";
     }
+    lexeme = Lexer::peekLexeme();
+    // Handle empty arguments
+    if (lexeme.token == Token::RIGHT_BRACKET) {
+        return new FunctionCallNode(funcName, nullptr);
+    }
     FunctionArgumentListNode* argList = ParseFunctionArgList();
     lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::RIGHT_BRACKET) {
