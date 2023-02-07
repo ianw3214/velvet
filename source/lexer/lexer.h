@@ -17,6 +17,6 @@ inline std::string slurp(const std::string& path) {
 
 namespace Lexer {
 	void LoadInputString(const std::string& string);
-	Lexeme peekLexeme();
+	Lexeme peekLexeme(int numTokens = 0);
 	Lexeme getLexeme();
 }
