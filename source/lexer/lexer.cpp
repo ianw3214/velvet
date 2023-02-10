@@ -183,20 +183,22 @@ void Lexer::LoadInputString(const std::string& string) {
     curr_index = 0;
 }
 
-Lexeme Lexer::peekLexeme(int numTokens) {
+#pragma optimize("", off)
+Lexeme Lexer::peekLexeme(int peekahead) {
     // First verify that we are peaking within a valid window size
-    if (numTokens + currentWindow >= WINDOW_SIZE) {
+    if (peekahead >= WINDOW_SIZE) {
         // TODO: Assert
     }
 
-    size_t targetIndex = currToken + numTokens;
+    size_t targetIndex = currToken + peekahead;
     targetIndex -= targetIndex >= WINDOW_SIZE ? WINDOW_SIZE : 0;
 
     // Skip the tokens that we've already peeked
-    numTokens -= currentWindow;
+    int numTokensToLex = peekahead + 1 - currentWindow;
+    // TODO: Assert that this is greater than 0
 
     size_t nextIndex = currToken + currentWindow;
-    while (numTokens > 0) {
+    while (numTokensToLex > 0) {
         std::pair<int, Token> new_lookahead = _advanceLookahead(curr_index);
 
         Lexeme result;
@@ -224,10 +226,11 @@ Lexeme Lexer::peekLexeme(int numTokens) {
         nextIndex -= nextIndex >= WINDOW_SIZE ? WINDOW_SIZE : 0;
         tokenBuffer[nextIndex] = result.token;
         stringBuffer[nextIndex] = result.symbol;
-        numTokens--;
+        numTokensToLex--;
         nextIndex++;
     }
 
+    currentWindow += numTokensToLex;
     const Token token = tokenBuffer[targetIndex];
     const std::string string = stringBuffer[targetIndex];
     return Lexeme{ token, string };
@@ -236,9 +239,11 @@ Lexeme Lexer::peekLexeme(int numTokens) {
 Lexeme Lexer::getLexeme() {
     // If the window size is greater than 1, then we have already peeked ahead
     if (currentWindow > 0) {
-        const size_t lastToken = currToken++ >= WINDOW_SIZE ? 0 : currToken;
         const Token token = tokenBuffer[currToken];
         const std::string str = stringBuffer[currToken];
+        currToken++;
+        currToken -= currToken >= WINDOW_SIZE ? WINDOW_SIZE : 0;
+        currentWindow--;
         return Lexeme{ token, str };
     }
     // If the window size is 0, we don't need to mess with it
