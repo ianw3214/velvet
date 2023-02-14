@@ -183,28 +183,29 @@ void Lexer::LoadInputString(const std::string& string) {
     curr_index = 0;
 }
 
-#pragma optimize("", off)
 Lexeme Lexer::peekLexeme(int peekahead) {
     // First verify that we are peaking within a valid window size
-    if (peekahead >= WINDOW_SIZE) {
+    if (peekahead > WINDOW_SIZE || peekahead < 1) {
         // TODO: Assert
     }
 
-    size_t targetIndex = currToken + peekahead;
+    size_t targetIndex = currToken + peekahead - 1;
     targetIndex -= targetIndex >= WINDOW_SIZE ? WINDOW_SIZE : 0;
 
     // Skip the tokens that we've already peeked
-    int numTokensToLex = peekahead + 1 - currentWindow;
+    int numTokensToLex = peekahead + currentWindow;
     // TODO: Assert that this is greater than 0
 
     size_t nextIndex = currToken + currentWindow;
+    int strIndex = curr_index;
     while (numTokensToLex > 0) {
-        std::pair<int, Token> new_lookahead = _advanceLookahead(curr_index);
+        std::pair<int, Token> new_lookahead = _advanceLookahead(strIndex);
 
         Lexeme result;
-        size_t size = static_cast<size_t>(new_lookahead.first - curr_index);
-        result.symbol = inputString.substr(curr_index, size);
+        size_t size = static_cast<size_t>(new_lookahead.first - strIndex);
+        result.symbol = inputString.substr(strIndex, size);
         result.token = new_lookahead.second;
+        strIndex = new_lookahead.first;
 
         if (result.token == Token::WHITESPACE) {
             int token_start = new_lookahead.first;

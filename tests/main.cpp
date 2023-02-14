@@ -55,3 +55,26 @@ TEST_CASE("Commas lex correctly", "[lexer]") {
 TEST_CASE("Numbers with decimals lex correctly", "[lexer]") {
 	_verifyInputStringGeneratesTokens("11.11, 22.22, 33.33", { Token::NUM, Token::COMMA, Token::NUM, Token::COMMA, Token::NUM });
 }
+
+TEST_CASE("GetLexeme lexes correctly after peeking ahead by 1") {
+	Lexer::LoadInputString("a");
+	Lexeme peekLexeme = Lexer::peekLexeme();
+	REQUIRE(peekLexeme.token == Token::ID);
+	REQUIRE(peekLexeme.symbol == "a");
+	Lexeme getLexeme = Lexer::getLexeme();
+	REQUIRE(getLexeme.token == Token::ID);
+	REQUIRE(getLexeme.symbol == "a");
+}
+
+TEST_CASE("GetLexeme lexes correctly after peeking ahead by 2") {
+	Lexer::LoadInputString("a b");
+	Lexeme peekLexeme = Lexer::peekLexeme(2);
+	REQUIRE(peekLexeme.token == Token::ID);
+	REQUIRE(peekLexeme.symbol == "b");
+	Lexeme getLexeme1 = Lexer::getLexeme();
+	REQUIRE(getLexeme1.token == Token::ID);
+	REQUIRE(getLexeme1.symbol == "a");
+	Lexeme getLexeme2 = Lexer::getLexeme();
+	REQUIRE(getLexeme2.token == Token::ID);
+	REQUIRE(getLexeme2.symbol == "b");
+}
