@@ -29,8 +29,7 @@ namespace {
         { "f32" , Token::TYPE_F32 },
         { "bool" , Token::TYPE_BOOL },
         // TEMPORARY, remove when lexer can peek ahead more than 1 token
-        { "assign", Token::ASSIGN_DECL },
-        { "call", Token::CALL_DECL }
+        { "assign", Token::ASSIGN_DECL }
     };
 
     inline bool _isAlphaNumerical(char c) {
@@ -191,21 +190,21 @@ Lexeme Lexer::peekLexeme(int peekahead) {
 
     size_t targetIndex = currToken + peekahead - 1;
     targetIndex -= targetIndex >= WINDOW_SIZE ? WINDOW_SIZE : 0;
+    size_t nextIndex = currToken + currentWindow;
 
     // Skip the tokens that we've already peeked
-    int numTokensToLex = peekahead + currentWindow;
+    int numTokensToLex = peekahead - currentWindow;
+    currentWindow += numTokensToLex;
     // TODO: Assert that this is greater than 0
 
-    size_t nextIndex = currToken + currentWindow;
-    int strIndex = curr_index;
     while (numTokensToLex > 0) {
-        std::pair<int, Token> new_lookahead = _advanceLookahead(strIndex);
+        std::pair<int, Token> new_lookahead = _advanceLookahead(curr_index);
 
         Lexeme result;
-        size_t size = static_cast<size_t>(new_lookahead.first - strIndex);
-        result.symbol = inputString.substr(strIndex, size);
+        size_t size = static_cast<size_t>(new_lookahead.first - curr_index);
+        result.symbol = inputString.substr(curr_index, size);
         result.token = new_lookahead.second;
-        strIndex = new_lookahead.first;
+        curr_index = new_lookahead.first;
 
         if (result.token == Token::WHITESPACE) {
             int token_start = new_lookahead.first;
@@ -214,6 +213,7 @@ Lexeme Lexer::peekLexeme(int peekahead) {
             size_t size = static_cast<size_t>(new_lookahead.first - token_start);
             result.symbol = inputString.substr(token_start, size);
             result.token = new_lookahead.second;
+            curr_index = new_lookahead.first;
         }
 
         if (result.token == Token::ID) {
@@ -231,7 +231,6 @@ Lexeme Lexer::peekLexeme(int peekahead) {
         nextIndex++;
     }
 
-    currentWindow += numTokensToLex;
     const Token token = tokenBuffer[targetIndex];
     const std::string string = stringBuffer[targetIndex];
     return Lexeme{ token, string };

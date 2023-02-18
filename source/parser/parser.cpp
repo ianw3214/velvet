@@ -40,10 +40,11 @@ ExpressionListNode* Parser::ParseExprList() {
 }
 
 ExpressionListNode* Parser::ParseExprListPost() {
-    Lexeme lexeme = Lexer::getLexeme();
+    Lexeme lexeme = Lexer::peekLexeme();
     if (lexeme.token != Token::EXPRESSION_END) {
         return nullptr;
     }
+    Lexer::getLexeme();
     ASTNode* expression = ParseExpr();
     if (!expression) {
         std::cout << "Error! Expected expression to be parsed\n";
@@ -131,11 +132,13 @@ FunctionParamNode* Parser::ParseFunctionParam() {
 }
 
 FunctionCallNode* Parser::ParseFunctionCall() {
+    /*
     Lexeme lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::CALL_DECL) {
         std::cout << "Error! Expected call declaration\n";
     }
-    lexeme = Lexer::getLexeme();
+    */
+    Lexeme lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::ID) {
         std::cout << "Error! Expected id node\n";
     }
@@ -249,6 +252,12 @@ ASTNode* Parser::ParseExpr() {
     case Token::LOOP: {
         return ParseLoopExpr();
     } break;
+    case Token::ID: {
+        lexeme = Lexer::peekLexeme(2);
+        if (lexeme.token == Token::LEFT_BRACKET) {
+            return ParseFunctionCall();
+        }
+    } // break;
     default: {
         return ParseRelExpr();
     }
@@ -262,6 +271,10 @@ BlockExpressionNode* Parser::ParseBlockExpr() {
         std::cout << "ERROR! Expected left curly bracket\n";
     }
     ExpressionListNode* expressions = ParseExprList();
+    lexeme = Lexer::getLexeme();
+    if (lexeme.token != Token::RIGHT_CURLY_BRACKET) {
+        std::cout << "ERROR! Expected right curly bracket\n";
+    }
     return new BlockExpressionNode(expressions);
 }
 
