@@ -132,12 +132,6 @@ FunctionParamNode* Parser::ParseFunctionParam() {
 }
 
 FunctionCallNode* Parser::ParseFunctionCall() {
-    /*
-    Lexeme lexeme = Lexer::getLexeme();
-    if (lexeme.token != Token::CALL_DECL) {
-        std::cout << "Error! Expected call declaration\n";
-    }
-    */
     Lexeme lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::ID) {
         std::cout << "Error! Expected id node\n";

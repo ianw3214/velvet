@@ -9,12 +9,6 @@
 #include "parser/parser.h"
 
 int main(int argc, char* argv[]) {
-    // Lexer::LoadInputString("fn main(argc $ int, argv $ str) -> type { var test $ type := 15; assign argc := 15; loop { if argc then test else argc } }");
-    // Lexer::LoadInputString("fn sum(a $ i32, b $ i32) -> i32 { a + b }");
-    // Lexer::LoadInputString("fn testfunc() -> i32 { var testvar $ i32 := 10; testvar + 10 }");
-    // Lexer::LoadInputString("fn sum(a $ i32, b $ i32) -> i32 { a * b }");
-    // Lexer::LoadInputString("fn toOne(num $ i32) -> i32 { if num then 1 else 0 }");
-    
     std::string inputString = "fn sum(a $ i32, b $ i32) -> i32 { a * b }";
 
     // Decide which file to load based on command line input

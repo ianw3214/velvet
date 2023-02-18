@@ -48,15 +48,27 @@ TEST_CASE("Loop expression lexes correctly", "[lexer]") {
 	_verifyInputStringGeneratesTokens("loop { foo() }", { Token::LOOP, Token::LEFT_CURLY_BRACKET, Token::ID, Token::LEFT_BRACKET, Token::RIGHT_BRACKET, Token::RIGHT_CURLY_BRACKET });
 }
 
+TEST_CASE("Newline lexes correctly as white space", "[lexer]") {
+	_verifyInputStringGeneratesTokens("line1 \n line2", { Token::ID, Token::ID });
+}
+
+TEST_CASE("Tab lexes correctly as white space", "[lexer]") {
+	_verifyInputStringGeneratesTokens("chunk1 \t chunk2", { Token::ID, Token::ID });
+}
+
 TEST_CASE("Commas lex correctly", "[lexer]") {
 	_verifyInputStringGeneratesTokens("a, b, c", { Token::ID, Token::COMMA, Token::ID, Token::COMMA, Token::ID });
+}
+
+TEST_CASE("Commas with no space lex correctly", "[lexer]") {
+	_verifyInputStringGeneratesTokens("a,b,c", { Token::ID, Token::COMMA, Token::ID, Token::COMMA, Token::ID });
 }
 
 TEST_CASE("Numbers with decimals lex correctly", "[lexer]") {
 	_verifyInputStringGeneratesTokens("11.11, 22.22, 33.33", { Token::NUM, Token::COMMA, Token::NUM, Token::COMMA, Token::NUM });
 }
 
-TEST_CASE("GetLexeme lexes correctly after peeking ahead by 1") {
+TEST_CASE("GetLexeme lexes correctly after peeking ahead by 1", "[lexer]") {
 	Lexer::LoadInputString("a");
 	Lexeme peekLexeme = Lexer::peekLexeme();
 	REQUIRE(peekLexeme.token == Token::ID);
@@ -66,7 +78,7 @@ TEST_CASE("GetLexeme lexes correctly after peeking ahead by 1") {
 	REQUIRE(getLexeme.symbol == "a");
 }
 
-TEST_CASE("GetLexeme lexes correctly after peeking ahead by 2") {
+TEST_CASE("GetLexeme lexes correctly after peeking ahead by 2", "[lexer]") {
 	Lexer::LoadInputString("a b");
 	Lexeme peekLexeme = Lexer::peekLexeme(2);
 	REQUIRE(peekLexeme.token == Token::ID);
@@ -77,4 +89,14 @@ TEST_CASE("GetLexeme lexes correctly after peeking ahead by 2") {
 	Lexeme getLexeme2 = Lexer::getLexeme();
 	REQUIRE(getLexeme2.token == Token::ID);
 	REQUIRE(getLexeme2.symbol == "b");
+}
+
+TEST_CASE("GetLexeme peeks correctly out of order", "[lexer]") {
+	Lexer::LoadInputString("a b");
+	Lexeme peekLexeme2 = Lexer::peekLexeme(2);
+	REQUIRE(peekLexeme2.token == Token::ID);
+	REQUIRE(peekLexeme2.symbol == "b");
+	Lexeme peekLexeme1 = Lexer::peekLexeme();
+	REQUIRE(peekLexeme1.token == Token::ID);
+	REQUIRE(peekLexeme1.symbol == "a");
 }
