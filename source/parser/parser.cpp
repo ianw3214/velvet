@@ -144,6 +144,7 @@ FunctionCallNode* Parser::ParseFunctionCall() {
     lexeme = Lexer::peekLexeme();
     // Handle empty arguments
     if (lexeme.token == Token::RIGHT_BRACKET) {
+        Lexer::getLexeme();
         return new FunctionCallNode(funcName, nullptr);
     }
     FunctionArgumentListNode* argList = ParseFunctionArgList();
@@ -206,7 +207,6 @@ VariableDeclarationNode* Parser::ParseVariableDeclaration() {
 }
 
 AssignmentExpressionNode* Parser::ParseAssignmentExpr() {
-    Lexer::getLexeme();
     Lexeme lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::ID) {
         std::cout << "ERROR! Expected id token\n";
@@ -231,12 +231,6 @@ ASTNode* Parser::ParseExpr() {
     case Token::VAR_DECL: {
         return ParseVariableDeclaration();
     } break;
-    case Token::ASSIGN_DECL: {
-        return ParseAssignmentExpr();
-    } break;
-    case Token::CALL_DECL: {
-        return ParseFunctionCall();
-    } break;
     case Token::LEFT_CURLY_BRACKET: {
         return ParseBlockExpr();
     } break;
@@ -250,6 +244,9 @@ ASTNode* Parser::ParseExpr() {
         lexeme = Lexer::peekLexeme(2);
         if (lexeme.token == Token::LEFT_BRACKET) {
             return ParseFunctionCall();
+        }
+        if (lexeme.token == Token::ASSIGNMENT) {
+            return ParseAssignmentExpr();
         }
     } // break;
     default: {
