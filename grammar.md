@@ -21,7 +21,7 @@
   - expr
   - **empty**
 - assign_expr
-  - id ':=' expr
+  - mem_location ':=' expr
 - expr
   - fn_decl_expr
   - var_decl_expr
@@ -53,6 +53,12 @@
   - id
   - num
   - ( expr )
+  - array_access
+- mem_location
+  - id
+  - array_access
+- array_access
+  - id [ expr ]
 - relop
   - '>'
   - '<'
@@ -95,7 +101,7 @@
   - ',' expr fn_arg_list_pos
   - **empty**
 - assign_expr
-  - id ':=' expr
+  - mem_location ':=' expr
 - expr
   - fn_decl_expr
   - var_decl_expr
@@ -129,6 +135,12 @@
   - id
   - num
   - ( expr )
+  - array_access
+- mem_location
+  - id
+  - array_access
+- array_access
+  - id [ expr ]
 - relop
   - '>'
   - '<'
