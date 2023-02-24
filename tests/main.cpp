@@ -108,3 +108,23 @@ TEST_CASE("GetLexeme peeks correctly out of order", "[lexer]") {
 	REQUIRE(peekLexeme1.token == Token::ID);
 	REQUIRE(peekLexeme1.symbol == "a");
 }
+
+TEST_CASE("GetLexeme peeks correctly after repeated uses", "[lexer]") {
+	// TODO: Maybe this should be shared w/ actual lexer code somehow
+	constexpr int LEXER_WINDOW_SIZE = 5;
+	Lexer::LoadInputString("0 1 2 3 4 5 6 7 8 9 10");
+	int currNum = 0;
+	while (currNum <= 10) {
+		Lexeme lexeme = Lexer::peekLexeme();
+		REQUIRE(lexeme.token == Token::NUM);
+		REQUIRE(lexeme.symbol == std::to_string(currNum));
+		int lastNum = std::min(currNum + LEXER_WINDOW_SIZE, 10);
+		for (int num = currNum; num <= lastNum; num++) {
+			Lexeme peekLexeme = Lexer::peekLexeme(num - currNum + 1);
+			REQUIRE(peekLexeme.token == Token::NUM);
+			REQUIRE(peekLexeme.symbol == std::to_string(num));
+		}
+		Lexer::getLexeme();
+		currNum++;
+	}
+}
