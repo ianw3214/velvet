@@ -109,10 +109,10 @@ public:
 
 class AssignmentExpressionNode : public ASTNode {
 public:
-    std::string mIdentifier;
+    ASTNode* mMemLocation;
     ASTNode* mExpression;
 
-    AssignmentExpressionNode(const std::string& id, ASTNode* expr) : mIdentifier(id), mExpression(expr) {}
+    AssignmentExpressionNode(ASTNode* memLocation, ASTNode* expr) : mMemLocation(memLocation), mExpression(expr) {}
     llvm::Value* Codegen() override;
 };
 
@@ -158,5 +158,22 @@ public:
     FunctionArgumentListNode* mArgumentList;
 
     FunctionCallNode(const std::string& funcName, FunctionArgumentListNode* argumentList) : mFuncName(funcName), mArgumentList(argumentList) {}
+    llvm::Value* Codegen() override;
+};
+
+class MemLocationNode : public ASTNode {
+public:
+    ASTNode* mNode;
+
+    MemLocationNode(ASTNode* node) : mNode(node) {}
+    llvm::Value* Codegen() override;
+};
+
+class ArrayAccessNode : public ASTNode {
+public:
+    std::string mName;
+    ASTNode* mArrayIndexExpr;
+
+    ArrayAccessNode(const std::string& name, ASTNode* arrayIndexExpr) : mName(name), mArrayIndexExpr(arrayIndexExpr) {}
     llvm::Value* Codegen() override;
 };

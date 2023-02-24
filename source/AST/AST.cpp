@@ -260,12 +260,14 @@ llvm::Value* VariableDeclarationNode::Codegen() {
 }
 
 llvm::Value* AssignmentExpressionNode::Codegen() {
+	/*
 	llvm::Value* variable = sNamedValues[mIdentifier];
 	if (!variable) {
 		// TODO: Error
 	}
 	llvm::Value* value = mExpression->Codegen();
 	sBuilder->CreateStore(value, variable);
+	*/
 	return nullptr;
 }
 
@@ -345,4 +347,12 @@ llvm::Value* FunctionCallNode::Codegen() {
 	// TODO: Validate func name/arguments
 	llvm::CallInst* call = sBuilder->CreateCall(func, arguments);
 	return call;
+}
+
+llvm::Value* MemLocationNode::Codegen() {
+	return nullptr;
+}
+
+llvm::Value* ArrayAccessNode::Codegen() {
+	return nullptr;
 }

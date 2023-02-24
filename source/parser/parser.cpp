@@ -207,19 +207,22 @@ VariableDeclarationNode* Parser::ParseVariableDeclaration() {
 }
 
 AssignmentExpressionNode* Parser::ParseAssignmentExpr() {
+    /*
     Lexeme lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::ID) {
         std::cout << "ERROR! Expected id token\n";
         return nullptr;
     }
     std::string identifier = lexeme.symbol;
-    lexeme = Lexer::getLexeme();
+    */
+    ASTNode* memLocation = ParseMemLocation();
+    Lexeme lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::ASSIGNMENT) {
         std::cout << "ERROR! Expected assignment operator (:=) \n";
         return nullptr;
     }
     ASTNode* expr = ParseExpr();
-    return new AssignmentExpressionNode(identifier, expr);
+    return new AssignmentExpressionNode(memLocation, expr);
 }
 
 ASTNode* Parser::ParseExpr() {
@@ -346,8 +349,9 @@ TypeNode* Parser::ParseType() {
 }
 
 ASTNode* Parser::ParseTerm(){
-    Lexeme lexeme = Lexer::getLexeme();
+    Lexeme lexeme = Lexer::peekLexeme();
     if (lexeme.token == Token::LEFT_BRACKET) {
+        Lexer::getLexeme();
         ASTNode* expr = ParseExpr();
         lexeme = Lexer::getLexeme();
         if (lexeme.token != Token::RIGHT_BRACKET) {
@@ -356,11 +360,51 @@ ASTNode* Parser::ParseTerm(){
         return expr;
     }
     if (lexeme.token == Token::ID) {
-        return new IdentifierNode(lexeme.symbol);
+        lexeme = Lexer::peekLexeme(2);
+        if (lexeme.token == Token::LEFT_SQUARE_BRACKET) {
+            return ParseArrayAccess();
+        }
+        else {
+            Lexer::getLexeme();
+            return new IdentifierNode(lexeme.symbol);
+        }
     }
     if (lexeme.token == Token::NUM) {
+        Lexer::getLexeme();
         return new NumberNode(lexeme.symbol);
     }
     // I think this should error?
     return nullptr;
+}
+
+ASTNode* Parser::ParseMemLocation() {
+    Lexeme lexeme = Lexer::peekLexeme(2);
+    if (lexeme.token == Token::LEFT_SQUARE_BRACKET) {
+        return ParseArrayAccess();
+    }
+    else {
+        lexeme = Lexer::getLexeme();
+        if (lexeme.token != Token::ID) {
+            std::cout << "ERROR! Expected identifier\n";
+        }
+        return new IdentifierNode(lexeme.symbol);
+    }
+}
+
+ASTNode* Parser::ParseArrayAccess() {
+    Lexeme lexeme = Lexer::getLexeme();
+    if (lexeme.token != Token::ID) {
+        std::cout << "ERROR! Expected identifier\n";
+    }
+    std::string name = lexeme.symbol;
+    lexeme = Lexer::getLexeme();
+    if (lexeme.token != Token::LEFT_SQUARE_BRACKET) {
+        std::cout << "ERROR! Expected '['\n";
+    }
+    ASTNode* expr = ParseExpr();
+    lexeme = Lexer::getLexeme();
+    if (lexeme.token != Token::RIGHT_SQUARE_BRACKET) {
+        std::cout << "ERROR! Expected ']'\n";
+    }
+    return new ArrayAccessNode(name, expr);
 }

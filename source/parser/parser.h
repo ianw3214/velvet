@@ -28,4 +28,6 @@ namespace Parser {
     ASTNode* ParseBinExprRHS(ASTNode* left);
     TypeNode* ParseType();
     ASTNode* ParseTerm();
+    ASTNode* ParseMemLocation();
+    ASTNode* ParseArrayAccess();
 }

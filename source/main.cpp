@@ -60,7 +60,8 @@ int main(int argc, char* argv[]) {
             stack.push_back(binExpr->mLeft);
         }
         if (AssignmentExpressionNode* assignExpr = dynamic_cast<AssignmentExpressionNode*>(top)) {
-            std::cout << "VISITED ASSIGNMENT STATEMENT NODE: " << assignExpr->mIdentifier << '\n';
+            std::cout << "VISITED ASSIGNMENT STATEMENT NODE\n";
+            stack.push_back(assignExpr->mMemLocation);
             stack.push_back(assignExpr->mExpression);
         }
         if (VariableDeclarationNode* declStmt = dynamic_cast<VariableDeclarationNode*>(top)) {
@@ -107,11 +108,21 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
+        if (MemLocationNode* memLoc = dynamic_cast<MemLocationNode*>(top)) {
+            std::cout << "VISITED MEMORY LOCATION\n";
+            stack.push_back(memLoc->mNode);
+        }
+        if (ArrayAccessNode* arrayAccess = dynamic_cast<ArrayAccessNode*>(top)) {
+            std::cout << "VISITED ARRAY ACCESS NODE: " << arrayAccess->mName << '\n';
+            stack.push_back(arrayAccess->mArrayIndexExpr);
+        }
     }
 
+    /*
     initLLVM();
     base->Codegen();
     printLLVM();
+    */
 
     return 0;
 };
