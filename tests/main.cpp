@@ -68,6 +68,14 @@ TEST_CASE("Numbers with decimals lex correctly", "[lexer]") {
 	_verifyInputStringGeneratesTokens("11.11, 22.22, 33.33", { Token::NUM, Token::COMMA, Token::NUM, Token::COMMA, Token::NUM });
 }
 
+TEST_CASE("Expressions with array access lex correctly", "[lexer]") {
+	_verifyInputStringGeneratesTokens("a[0] + b[1]", { Token::ID, Token::LEFT_SQUARE_BRACKET, Token::NUM, Token::RIGHT_SQUARE_BRACKET, Token::PLUS, Token::ID, Token::LEFT_SQUARE_BRACKET, Token::NUM, Token::RIGHT_SQUARE_BRACKET });
+}
+
+TEST_CASE("Expression with space in array access lexes correctly", "[lexer]") {
+	_verifyInputStringGeneratesTokens("a [ test ]", { Token::ID, Token::LEFT_SQUARE_BRACKET, Token::ID, Token::RIGHT_SQUARE_BRACKET });
+}
+
 TEST_CASE("GetLexeme lexes correctly after peeking ahead by 1", "[lexer]") {
 	Lexer::LoadInputString("a");
 	Lexeme peekLexeme = Lexer::peekLexeme();

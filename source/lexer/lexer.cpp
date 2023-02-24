@@ -91,6 +91,14 @@ std::pair<int, Token> _advanceLookahead(int lookahead) {
         lookahead_char = inputString[++lookahead];
         token = Token::RIGHT_CURLY_BRACKET;
     } break;
+    case '[': {
+        lookahead_char = inputString[++lookahead];
+        token = Token::LEFT_SQUARE_BRACKET;
+    } break;
+    case ']': {
+        lookahead_char = inputString[++lookahead];
+        token = Token::RIGHT_SQUARE_BRACKET;
+    } break;
     case '+': {
         lookahead_char = inputString[++lookahead];
         token = Token::PLUS;
