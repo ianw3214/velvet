@@ -40,8 +40,9 @@ public:
     std::string mIdentifier;
     // TODO: This will have to handle multidimensional array types
     bool mIsArray;
+    NumberNode* mArraySize;
 
-    TypeNode(Token typeClass, bool isArray = false, const std::string& identifier = "") : mTypeClass(typeClass), mIdentifier(identifier), mIsArray(isArray) {}
+    TypeNode(Token typeClass, bool isArray = false, NumberNode* arraySize = nullptr, const std::string& identifier = "") : mTypeClass(typeClass), mIdentifier(identifier), mIsArray(isArray), mArraySize(arraySize) {}
     llvm::Value* Codegen() override;
 };
 

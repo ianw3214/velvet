@@ -334,24 +334,31 @@ TypeNode* Parser::ParseType() {
     Lexeme lexeme = Lexer::getLexeme();
     Lexeme arrayPeek = Lexer::peekLexeme();
     bool isArray = arrayPeek.token == Token::LEFT_SQUARE_BRACKET;
+    NumberNode* arraySizeNode = nullptr;
     if (isArray) {
         Lexer::getLexeme();
+        arrayPeek = Lexer::getLexeme();
+        if (arrayPeek.token != Token::NUM) {
+            // TODO: This should handle only size nums and not negative/floating point nums
+            std::cout << "ERROR! Expected number for array size\n";
+        }
+        arraySizeNode = new NumberNode(arrayPeek.symbol);
         arrayPeek = Lexer::getLexeme();
         if (arrayPeek.token != Token::RIGHT_SQUARE_BRACKET) {
             std::cout << "ERROR! Expected right square bracket\n";
         }
     }
     if (lexeme.token == Token::TYPE_I32) {
-        return new TypeNode(Token::TYPE_I32, isArray);
+        return new TypeNode(Token::TYPE_I32, isArray, arraySizeNode);
     }
     if (lexeme.token == Token::TYPE_F32) {
-        return new TypeNode(Token::TYPE_F32, isArray);
+        return new TypeNode(Token::TYPE_F32, isArray, arraySizeNode);
     }
     if (lexeme.token == Token::TYPE_BOOL) {
-        return new TypeNode(Token::TYPE_BOOL, isArray);
+        return new TypeNode(Token::TYPE_BOOL, isArray, arraySizeNode);
     }
     if (lexeme.token == Token::ID) {
-        return new TypeNode(Token::ID, isArray, lexeme.symbol);
+        return new TypeNode(Token::ID, isArray, arraySizeNode, lexeme.symbol);
     }
     std::cout << "Could not parse type\n";
     return nullptr;

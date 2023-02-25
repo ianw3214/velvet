@@ -132,7 +132,7 @@
   - 'f32'
   - 'bool'
   - id
-  - type []
+  - type [ num ]
 - term
   - id
   - num
