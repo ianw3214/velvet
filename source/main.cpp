@@ -65,8 +65,11 @@ int main(int argc, char* argv[]) {
             stack.push_back(assignExpr->mExpression);
         }
         if (VariableDeclarationNode* declStmt = dynamic_cast<VariableDeclarationNode*>(top)) {
-            std::cout << "VISITED VARIABLE DECLARATION NODE: " << declStmt->mIdentifier << " (type: " << declStmt->mType << ")\n";
-            stack.push_back(declStmt->mExpression);
+            std::cout << "VISITED VARIABLE DECLARATION NODE: " << declStmt->mIdentifier << ")\n";
+            stack.push_back(declStmt->mType);
+            if (declStmt->mExpression) {
+                stack.push_back(declStmt->mExpression);
+            }
         }
         if (ExpressionListNode* exprList = dynamic_cast<ExpressionListNode*>(top)) {
             std::cout << "VISITED EXPRESSION LIST OF SIZE " << exprList->mExpressions.size() << '\n';
@@ -99,6 +102,7 @@ int main(int argc, char* argv[]) {
             if (type->mTypeClass == Token::TYPE_F32) std::cout << "VISITED TYPE NODE (f32)\n";
             if (type->mTypeClass == Token::TYPE_BOOL) std::cout << "VISITED TYPE NODE (bool)\n";
             if (type->mTypeClass == Token::ID) std::cout << "VISITED TYPE NODE (" + type->mIdentifier + ")\n";
+            std::cout << "  TYPE IS ARRAY: " << (type->mIsArray ? "TRUE" : "FALSE") << '\n';
         }
         if (FunctionCallNode* funcCall = dynamic_cast<FunctionCallNode*>(top)) {
             std::cout << "VISITED FUNCTION CALL " << funcCall->mFuncName << '\n';

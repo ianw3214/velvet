@@ -49,6 +49,7 @@
   - 'f32'
   - 'bool'
   - id
+  - type []
 - term
   - id
   - num
@@ -131,6 +132,7 @@
   - 'f32'
   - 'bool'
   - id
+  - type []
 - term
   - id
   - num

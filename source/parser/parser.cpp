@@ -332,17 +332,26 @@ ASTNode* Parser::ParseBinExprRHS(ASTNode* left){
 
 TypeNode* Parser::ParseType() {
     Lexeme lexeme = Lexer::getLexeme();
+    Lexeme arrayPeek = Lexer::peekLexeme();
+    bool isArray = arrayPeek.token == Token::LEFT_SQUARE_BRACKET;
+    if (isArray) {
+        Lexer::getLexeme();
+        arrayPeek = Lexer::getLexeme();
+        if (arrayPeek.token != Token::RIGHT_SQUARE_BRACKET) {
+            std::cout << "ERROR! Expected right square bracket\n";
+        }
+    }
     if (lexeme.token == Token::TYPE_I32) {
-        return new TypeNode(Token::TYPE_I32);
+        return new TypeNode(Token::TYPE_I32, isArray);
     }
     if (lexeme.token == Token::TYPE_F32) {
-        return new TypeNode(Token::TYPE_F32);
+        return new TypeNode(Token::TYPE_F32, isArray);
     }
     if (lexeme.token == Token::TYPE_BOOL) {
-        return new TypeNode(Token::TYPE_BOOL);
+        return new TypeNode(Token::TYPE_BOOL, isArray);
     }
     if (lexeme.token == Token::ID) {
-        return new TypeNode(Token::ID, lexeme.symbol);
+        return new TypeNode(Token::ID, isArray, lexeme.symbol);
     }
     std::cout << "Could not parse type\n";
     return nullptr;

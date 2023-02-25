@@ -38,8 +38,10 @@ class TypeNode : public ASTNode {
 public:
     Token mTypeClass;
     std::string mIdentifier;
+    // TODO: This will have to handle multidimensional array types
+    bool mIsArray;
 
-    TypeNode(Token typeClass, const std::string& identifier = "") : mTypeClass(typeClass), mIdentifier(identifier) {}
+    TypeNode(Token typeClass, bool isArray = false, const std::string& identifier = "") : mTypeClass(typeClass), mIdentifier(identifier), mIsArray(isArray) {}
     llvm::Value* Codegen() override;
 };
 
