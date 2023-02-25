@@ -118,11 +118,9 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    /*
     initLLVM();
     base->Codegen();
     printLLVM();
-    */
 
     return 0;
 };

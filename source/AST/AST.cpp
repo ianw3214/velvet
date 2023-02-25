@@ -260,14 +260,18 @@ llvm::Value* VariableDeclarationNode::Codegen() {
 }
 
 llvm::Value* AssignmentExpressionNode::Codegen() {
-	/*
-	llvm::Value* variable = sNamedValues[mIdentifier];
-	if (!variable) {
-		// TODO: Error
+	// TODO: This should be differentiated in grammar so lvalue vs rvalue identifier nodes are handled differently
+	if (IdentifierNode* identifier = dynamic_cast<IdentifierNode*>(mMemLocation)) {
+		llvm::Value* variable = sNamedValues[identifier->mIdentifier];
+		if (!variable) {
+			// TODO: Error
+		}
+		llvm::Value* value = mExpression->Codegen();
+		sBuilder->CreateStore(value, variable);
 	}
-	llvm::Value* value = mExpression->Codegen();
-	sBuilder->CreateStore(value, variable);
-	*/
+	if (ArrayAccessNode* arrayAccess = dynamic_cast<ArrayAccessNode*>(mMemLocation)) {
+		// TODO: Implement
+	}
 	return nullptr;
 }
 

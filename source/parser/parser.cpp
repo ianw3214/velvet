@@ -365,7 +365,7 @@ ASTNode* Parser::ParseTerm(){
             return ParseArrayAccess();
         }
         else {
-            Lexer::getLexeme();
+            lexeme = Lexer::getLexeme();
             return new IdentifierNode(lexeme.symbol);
         }
     }
