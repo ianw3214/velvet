@@ -196,21 +196,19 @@ llvm::Value* LoopExpressionNode::Codegen() {
 	return blockExpressionValue;
 }
 
-llvm::Value* RelationalExpressionNode::Codegen() {
-	return nullptr;
-}
-
-llvm::Value* BinaryExpressionNode::Codegen() {
+llvm::Value* BinaryOperatorNode::Codegen() {
 	llvm::Value* left = mLeft->Codegen();
 	llvm::Value* right = mRight->Codegen();
 	if (!left || !right) {
 		// TODO: Error
 		return nullptr;
 	}
+	/*
 	if (left->getType() != right->getType()) {
 		// TODO: Error
 		return nullptr;
 	}
+	*/
 	switch (mOperator) {
 	case Token::PLUS: {
 		if (left->getType()->isFloatTy()) {
@@ -245,6 +243,10 @@ llvm::Value* BinaryExpressionNode::Codegen() {
 			return sBuilder->CreateFDiv(left, right, "divtmp");
 		}
 	} break;
+	case Token::ASSIGNMENT: {
+		// TODO: This should be differentiated in grammar so lvalue vs rvalue identifier nodes are handled differently
+		return sBuilder->CreateStore(right, left);
+	} break;
 	}
 	return nullptr;
 }
@@ -267,22 +269,6 @@ llvm::Value* VariableDeclarationNode::Codegen() {
 	sBuilder->CreateStore(initVal, allocaInst);
 
 	sNamedValues[mIdentifier] = allocaInst;
-	return nullptr;
-}
-
-llvm::Value* AssignmentExpressionNode::Codegen() {
-	// TODO: This should be differentiated in grammar so lvalue vs rvalue identifier nodes are handled differently
-	if (IdentifierNode* identifier = dynamic_cast<IdentifierNode*>(mMemLocation)) {
-		llvm::Value* variable = sNamedValues[identifier->mIdentifier];
-		if (!variable) {
-			// TODO: Error
-		}
-		llvm::Value* value = mExpression->Codegen();
-		sBuilder->CreateStore(value, variable);
-	}
-	if (ArrayAccessNode* arrayAccess = dynamic_cast<ArrayAccessNode*>(mMemLocation)) {
-		// TODO: Implement
-	}
 	return nullptr;
 }
 
@@ -364,10 +350,6 @@ llvm::Value* FunctionCallNode::Codegen() {
 	return call;
 }
 
-llvm::Value* MemLocationNode::Codegen() {
-	return nullptr;
-}
-
 llvm::Value* ArrayAccessNode::Codegen() {
 	// This assumes the codegen is used to get the value of an array element
 	// TODO: Better way to differentiate between lvalue/rvalue access of array
@@ -382,8 +364,13 @@ llvm::Value* ArrayAccessNode::Codegen() {
 		llvm::ConstantInt* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*sContext), 0);
 		llvm::Value* index = mArrayIndexExpr->Codegen();
 		llvm::Value* indices[] = { zero, index };
-		llvm::Value* elementPtr = sBuilder->CreateGEP(type, value, index);
-		return sBuilder->CreateLoad(elementType, elementPtr, mName.c_str());
+		llvm::Value* elementPtr = sBuilder->CreateGEP(type, value, indices);
+		if (mIsMemLocation) {
+			return elementPtr;
+		}
+		else {
+			return sBuilder->CreateLoad(elementType, elementPtr, mName.c_str());
+		}
 	}
 	return nullptr;
 }

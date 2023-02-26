@@ -5,16 +5,9 @@
 #include "lexer/lexer.h"
 
 namespace {
-    bool _isRelationalOperator(Token token) {
-        constexpr int start_index = static_cast<int>(Token::GREATER);
-        constexpr int end_index = static_cast<int>(Token::NOT_EQUALS);
-        const int target = static_cast<int>(token);
-        return target >= start_index && target <= end_index;
-    }
-
     bool _isBinaryOperator(Token token) {
-        constexpr int start_index = static_cast<int>(Token::PLUS);
-        constexpr int end_index = static_cast<int>(Token::DIVIDE);
+        constexpr int start_index = static_cast<int>(Token::ASSIGNMENT);
+        constexpr int end_index = static_cast<int>(Token::NOT_EQUALS);
         const int target = static_cast<int>(token);
         return target >= start_index && target <= end_index;
     }
@@ -206,25 +199,6 @@ VariableDeclarationNode* Parser::ParseVariableDeclaration() {
     return new VariableDeclarationNode(identifier, type, opt_assign);
 }
 
-AssignmentExpressionNode* Parser::ParseAssignmentExpr() {
-    /*
-    Lexeme lexeme = Lexer::getLexeme();
-    if (lexeme.token != Token::ID) {
-        std::cout << "ERROR! Expected id token\n";
-        return nullptr;
-    }
-    std::string identifier = lexeme.symbol;
-    */
-    ASTNode* memLocation = ParseMemLocation();
-    Lexeme lexeme = Lexer::getLexeme();
-    if (lexeme.token != Token::ASSIGNMENT) {
-        std::cout << "ERROR! Expected assignment operator (:=) \n";
-        return nullptr;
-    }
-    ASTNode* expr = ParseExpr();
-    return new AssignmentExpressionNode(memLocation, expr);
-}
-
 ASTNode* Parser::ParseExpr() {
     Lexeme lexeme = Lexer::peekLexeme();
     switch (lexeme.token) {
@@ -248,12 +222,9 @@ ASTNode* Parser::ParseExpr() {
         if (lexeme.token == Token::LEFT_BRACKET) {
             return ParseFunctionCall();
         }
-        if (lexeme.token == Token::ASSIGNMENT) {
-            return ParseAssignmentExpr();
-        }
     } // break;
     default: {
-        return ParseRelExpr();
+        return ParseBinopExpr();
     }
     }
     return nullptr;
@@ -301,30 +272,19 @@ LoopExpressionNode* Parser::ParseLoopExpr() {
     return new LoopExpressionNode(block);
 }
 
-ASTNode* Parser::ParseRelExpr() {
-    ASTNode* lhs = ParseBinExpr();
-    Lexeme lexeme = Lexer::peekLexeme();
-    if (_isRelationalOperator(lexeme.token)) {
-        Lexer::getLexeme();
-        ASTNode* rhs = ParseBinExpr();
-        return new RelationalExpressionNode(lhs, rhs, lexeme.token);
-    }
-    return lhs;
-}
-
-ASTNode* Parser::ParseBinExpr() {
+ASTNode* Parser::ParseBinopExpr() {
     ASTNode* term = ParseTerm();
-    ASTNode* opt_rhs = ParseBinExprRHS(term);
+    ASTNode* opt_rhs = ParseBinopExprPost(term);
     return opt_rhs ? opt_rhs : term;
 }
 
-ASTNode* Parser::ParseBinExprRHS(ASTNode* left){
+ASTNode* Parser::ParseBinopExprPost(ASTNode* left) {
     Lexeme lexeme = Lexer::peekLexeme();
     if (_isBinaryOperator(lexeme.token)) {
         Lexer::getLexeme();
         ASTNode* right = ParseExpr();
-        ASTNode* binop = new BinaryExpressionNode(left, right, lexeme.token);
-        ASTNode* opt_post = ParseBinExprRHS(binop);
+        ASTNode* binop = new BinaryOperatorNode(left, right, lexeme.token);
+        ASTNode* opt_post = ParseBinopExprPost(binop);
         return opt_post ? opt_post : binop;
     }
     return nullptr;
@@ -393,20 +353,6 @@ ASTNode* Parser::ParseTerm(){
     return nullptr;
 }
 
-ASTNode* Parser::ParseMemLocation() {
-    Lexeme lexeme = Lexer::peekLexeme(2);
-    if (lexeme.token == Token::LEFT_SQUARE_BRACKET) {
-        return ParseArrayAccess();
-    }
-    else {
-        lexeme = Lexer::getLexeme();
-        if (lexeme.token != Token::ID) {
-            std::cout << "ERROR! Expected identifier\n";
-        }
-        return new IdentifierNode(lexeme.symbol);
-    }
-}
-
 ASTNode* Parser::ParseArrayAccess() {
     Lexeme lexeme = Lexer::getLexeme();
     if (lexeme.token != Token::ID) {
@@ -422,5 +368,12 @@ ASTNode* Parser::ParseArrayAccess() {
     if (lexeme.token != Token::RIGHT_SQUARE_BRACKET) {
         std::cout << "ERROR! Expected ']'\n";
     }
-    return new ArrayAccessNode(name, expr);
+    // peek ahead to see if array access is for assignment
+    // TODO: Not sure if there might be a better way to do this
+    bool isMemLocation = false;
+    lexeme = Lexer::peekLexeme();
+    if (lexeme.token == Token::ASSIGNMENT) {
+        isMemLocation = true;
+    }
+    return new ArrayAccessNode(name, expr, isMemLocation);
 }

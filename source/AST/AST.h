@@ -80,23 +80,13 @@ public:
     llvm::Value* Codegen() override;
 };
 
-class RelationalExpressionNode: public ASTNode {
+class BinaryOperatorNode : public ASTNode {
 public:
     ASTNode* mLeft;
     ASTNode* mRight;
     Token mOperator;
 
-    RelationalExpressionNode(ASTNode* left, ASTNode* right, Token op) : mLeft(left), mRight(right), mOperator(op) {}
-    llvm::Value* Codegen() override;
-};
-
-class BinaryExpressionNode : public ASTNode {
-public:
-    ASTNode* mLeft;
-    ASTNode* mRight;
-    Token mOperator;
-
-    BinaryExpressionNode(ASTNode* left, ASTNode* right, Token op) : mLeft(left), mRight(right), mOperator(op) {}
+    BinaryOperatorNode(ASTNode* left, ASTNode* right, Token op) : mLeft(left), mRight(right), mOperator(op) {}
     llvm::Value* Codegen() override;
 };
 
@@ -107,15 +97,6 @@ public:
     ASTNode* mExpression;
 
     VariableDeclarationNode(const std::string id, TypeNode* type, ASTNode* expr) : mIdentifier(id), mType(type), mExpression(expr) {}
-    llvm::Value* Codegen() override;
-};
-
-class AssignmentExpressionNode : public ASTNode {
-public:
-    ASTNode* mMemLocation;
-    ASTNode* mExpression;
-
-    AssignmentExpressionNode(ASTNode* memLocation, ASTNode* expr) : mMemLocation(memLocation), mExpression(expr) {}
     llvm::Value* Codegen() override;
 };
 
@@ -164,19 +145,13 @@ public:
     llvm::Value* Codegen() override;
 };
 
-class MemLocationNode : public ASTNode {
-public:
-    ASTNode* mNode;
-
-    MemLocationNode(ASTNode* node) : mNode(node) {}
-    llvm::Value* Codegen() override;
-};
-
 class ArrayAccessNode : public ASTNode {
 public:
     std::string mName;
     ASTNode* mArrayIndexExpr;
 
-    ArrayAccessNode(const std::string& name, ASTNode* arrayIndexExpr) : mName(name), mArrayIndexExpr(arrayIndexExpr) {}
+    bool mIsMemLocation;
+
+    ArrayAccessNode(const std::string& name, ASTNode* arrayIndexExpr, bool isMemLocation = false) : mName(name), mArrayIndexExpr(arrayIndexExpr), mIsMemLocation(isMemLocation) {}
     llvm::Value* Codegen() override;
 };

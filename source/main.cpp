@@ -49,23 +49,13 @@ int main(int argc, char* argv[]) {
             std::cout << "VISITED LOOP EXPR NODE\n";
             stack.push_back(loopExpr->mBlockNode);
         }
-        if (RelationalExpressionNode* relOp = dynamic_cast<RelationalExpressionNode*>(top)) {
-            std::cout << "VISITED REL OPERATOR NODE: " << "relOp->mOperator" << '\n';
-            stack.push_back(relOp->mRight);
-            stack.push_back(relOp->mLeft);
-        }
-        if (BinaryExpressionNode* binExpr = dynamic_cast<BinaryExpressionNode*>(top)) {
-            std::cout << "VISITED BINARY EXPRESSION NODE: " << "binExpr->mOperator" << '\n';
-            stack.push_back(binExpr->mRight);
-            stack.push_back(binExpr->mLeft);
-        }
-        if (AssignmentExpressionNode* assignExpr = dynamic_cast<AssignmentExpressionNode*>(top)) {
-            std::cout << "VISITED ASSIGNMENT STATEMENT NODE\n";
-            stack.push_back(assignExpr->mMemLocation);
-            stack.push_back(assignExpr->mExpression);
+        if (BinaryOperatorNode* binOp = dynamic_cast<BinaryOperatorNode*>(top)) {
+            std::cout << "VISITED BINARY OPERATOR NODE: " << "relOp->mOperator (SHOULD IMPLEMENT THIS)" << '\n';
+            stack.push_back(binOp->mRight);
+            stack.push_back(binOp->mLeft);
         }
         if (VariableDeclarationNode* declStmt = dynamic_cast<VariableDeclarationNode*>(top)) {
-            std::cout << "VISITED VARIABLE DECLARATION NODE: " << declStmt->mIdentifier << ")\n";
+            std::cout << "VISITED VARIABLE DECLARATION NODE: " << declStmt->mIdentifier << '\n';
             stack.push_back(declStmt->mType);
             if (declStmt->mExpression) {
                 stack.push_back(declStmt->mExpression);
@@ -111,10 +101,6 @@ int main(int argc, char* argv[]) {
                     stack.push_back(node);
                 }
             }
-        }
-        if (MemLocationNode* memLoc = dynamic_cast<MemLocationNode*>(top)) {
-            std::cout << "VISITED MEMORY LOCATION\n";
-            stack.push_back(memLoc->mNode);
         }
         if (ArrayAccessNode* arrayAccess = dynamic_cast<ArrayAccessNode*>(top)) {
             std::cout << "VISITED ARRAY ACCESS NODE: " << arrayAccess->mName << '\n';
