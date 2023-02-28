@@ -75,22 +75,32 @@ void printLLVM() {
 // HELPER
 
 namespace {
-	llvm::Type* GetRawLLVMType(Token typeClass) {
-		if (typeClass == Token::TYPE_I32) {
+	llvm::Type* GetRawLLVMType(TypeNode* type) {
+		if (type->mTypeClass == Token::TYPE_I32) {
 			return llvm::Type::getInt32Ty(*sContext);
 		}
-		if (typeClass == Token::TYPE_F32) {
+		if (type->mTypeClass == Token::TYPE_F32) {
 			return llvm::Type::getFloatTy(*sContext);
 		}
-		if (typeClass == Token::TYPE_BOOL) {
+		if (type->mTypeClass == Token::TYPE_BOOL) {
 			return llvm::Type::getInt1Ty(*sContext);
 		}
+		// TODO: Error?
 		return nullptr;
 	}
 
-	llvm::AllocaInst* CreateEntryBlockAlloca(llvm::Function* func, const std::string& varName, Token type) {
+	llvm::Type* GetLLVMType(TypeNode* type) {
+		llvm::Type* rawType = GetRawLLVMType(type);
+		if (type->mIsArray) {
+			const int arraySize = std::stoi(type->mArraySize->mNumber);
+			return llvm::ArrayType::get(rawType, arraySize);
+		}
+		return rawType;
+	}
+
+	llvm::AllocaInst* CreateEntryBlockAlloca(llvm::Function* func, const std::string& varName, TypeNode* type) {
 		llvm::IRBuilder<> tempBuilder(&func->getEntryBlock(), func->getEntryBlock().begin());
-		return tempBuilder.CreateAlloca(GetRawLLVMType(type), 0, varName.c_str());
+		return tempBuilder.CreateAlloca(GetLLVMType(type), 0, varName.c_str());
 	}
 }
 
@@ -186,21 +196,14 @@ llvm::Value* LoopExpressionNode::Codegen() {
 	return blockExpressionValue;
 }
 
-llvm::Value* RelationalExpressionNode::Codegen() {
-	return nullptr;
-}
-
-llvm::Value* BinaryExpressionNode::Codegen() {
+llvm::Value* BinaryOperatorNode::Codegen() {
 	llvm::Value* left = mLeft->Codegen();
 	llvm::Value* right = mRight->Codegen();
 	if (!left || !right) {
 		// TODO: Error
 		return nullptr;
 	}
-	if (left->getType() != right->getType()) {
-		// TODO: Error
-		return nullptr;
-	}
+	// TODO: Might want to perform some form of type checking/casting here
 	switch (mOperator) {
 	case Token::PLUS: {
 		if (left->getType()->isFloatTy()) {
@@ -235,6 +238,10 @@ llvm::Value* BinaryExpressionNode::Codegen() {
 			return sBuilder->CreateFDiv(left, right, "divtmp");
 		}
 	} break;
+	case Token::ASSIGNMENT: {
+		// TODO: This should be differentiated in grammar so lvalue vs rvalue identifier nodes are handled differently
+		return sBuilder->CreateStore(right, left);
+	} break;
 	}
 	return nullptr;
 }
@@ -250,22 +257,13 @@ llvm::Value* VariableDeclarationNode::Codegen() {
 		}
 	}
 	else {
+		// TODO: Maybe this should depend on type?
 		initVal = llvm::ConstantFP::get(*sContext, llvm::APFloat(0.0f));
 	}
-	llvm::AllocaInst* allocaInst = CreateEntryBlockAlloca(parent, mIdentifier, mType->mTypeClass);
+	llvm::AllocaInst* allocaInst = CreateEntryBlockAlloca(parent, mIdentifier, mType);
 	sBuilder->CreateStore(initVal, allocaInst);
 
 	sNamedValues[mIdentifier] = allocaInst;
-	return nullptr;
-}
-
-llvm::Value* AssignmentExpressionNode::Codegen() {
-	llvm::Value* variable = sNamedValues[mIdentifier];
-	if (!variable) {
-		// TODO: Error
-	}
-	llvm::Value* value = mExpression->Codegen();
-	sBuilder->CreateStore(value, variable);
 	return nullptr;
 }
 
@@ -283,11 +281,11 @@ llvm::Value* FunctionDeclNode::Codegen() {
 	std::vector<llvm::Type*> paramTypes;
 	if (mParamList) {
 		std::transform(mParamList->mParams.cbegin(), mParamList->mParams.cend(), std::back_inserter(paramTypes), [](FunctionParamNode* rawParam) {
-			return GetRawLLVMType(rawParam->mType->mTypeClass);
+			return GetLLVMType(rawParam->mType);
 		});
 	}
 
-	llvm::FunctionType* funcType = llvm::FunctionType::get(GetRawLLVMType(mType->mTypeClass), paramTypes, false);
+	llvm::FunctionType* funcType = llvm::FunctionType::get(GetLLVMType(mType), paramTypes, false);
 	llvm::Function* func = llvm::Function::Create(funcType, llvm::Function::ExternalLinkage, mName, sModule.get());
 
 	// Create basic block to start insertion into
@@ -297,7 +295,7 @@ llvm::Value* FunctionDeclNode::Codegen() {
 	unsigned int index = 0;
 	for (auto& arg : func->args()) {
 		FunctionParamNode* param = mParamList->mParams[index];
-		llvm::AllocaInst* allocaInst = CreateEntryBlockAlloca(func, param->mName, param->mType->mTypeClass);
+		llvm::AllocaInst* allocaInst = CreateEntryBlockAlloca(func, param->mName, param->mType);
 		sBuilder->CreateStore(&arg, allocaInst);
 		sNamedValues[param->mName] = allocaInst;
 		index++;
@@ -345,4 +343,29 @@ llvm::Value* FunctionCallNode::Codegen() {
 	// TODO: Validate func name/arguments
 	llvm::CallInst* call = sBuilder->CreateCall(func, arguments);
 	return call;
+}
+
+llvm::Value* ArrayAccessNode::Codegen() {
+	// This assumes the codegen is used to get the value of an array element
+	// TODO: Better way to differentiate between lvalue/rvalue access of array
+	llvm::AllocaInst* value = sNamedValues[mName];
+	if (!value) {
+		// TODO: Error
+		return nullptr;
+	}
+	else {
+		llvm::Type* type = sNamedValues[mName]->getAllocatedType();
+		llvm::Type* elementType = type->getArrayElementType();
+		llvm::ConstantInt* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*sContext), 0);
+		llvm::Value* index = mArrayIndexExpr->Codegen();
+		llvm::Value* indices[] = { zero, index };
+		llvm::Value* elementPtr = sBuilder->CreateGEP(type, value, indices);
+		if (mIsMemLocation) {
+			return elementPtr;
+		}
+		else {
+			return sBuilder->CreateLoad(elementType, elementPtr, mName.c_str());
+		}
+	}
+	return nullptr;
 }

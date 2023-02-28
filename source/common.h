@@ -7,11 +7,10 @@ enum class Token {
 
     WHITESPACE,
 
-    // declaration/assignment
+    // declaration
     VAR_DECL,
     TYPE_DECL,
     FN_DECL,
-    ASSIGNMENT,
 
     // keywords
     IF,
@@ -22,6 +21,9 @@ enum class Token {
     // identifiers/literals
     ID,
     NUM,
+
+    // assignment operator
+    ASSIGNMENT,
 
     // binary operators
     PLUS,
@@ -44,6 +46,8 @@ enum class Token {
     EXPRESSION_END,
     LEFT_CURLY_BRACKET,
     RIGHT_CURLY_BRACKET,
+    LEFT_SQUARE_BRACKET,
+    RIGHT_SQUARE_BRACKET,
     FN_TYPE_RESULT,
 
     // types

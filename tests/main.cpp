@@ -68,6 +68,14 @@ TEST_CASE("Numbers with decimals lex correctly", "[lexer]") {
 	_verifyInputStringGeneratesTokens("11.11, 22.22, 33.33", { Token::NUM, Token::COMMA, Token::NUM, Token::COMMA, Token::NUM });
 }
 
+TEST_CASE("Expressions with array access lex correctly", "[lexer]") {
+	_verifyInputStringGeneratesTokens("a[0] + b[1]", { Token::ID, Token::LEFT_SQUARE_BRACKET, Token::NUM, Token::RIGHT_SQUARE_BRACKET, Token::PLUS, Token::ID, Token::LEFT_SQUARE_BRACKET, Token::NUM, Token::RIGHT_SQUARE_BRACKET });
+}
+
+TEST_CASE("Expression with space in array access lexes correctly", "[lexer]") {
+	_verifyInputStringGeneratesTokens("a [ test ]", { Token::ID, Token::LEFT_SQUARE_BRACKET, Token::ID, Token::RIGHT_SQUARE_BRACKET });
+}
+
 TEST_CASE("GetLexeme lexes correctly after peeking ahead by 1", "[lexer]") {
 	Lexer::LoadInputString("a");
 	Lexeme peekLexeme = Lexer::peekLexeme();
@@ -99,4 +107,24 @@ TEST_CASE("GetLexeme peeks correctly out of order", "[lexer]") {
 	Lexeme peekLexeme1 = Lexer::peekLexeme();
 	REQUIRE(peekLexeme1.token == Token::ID);
 	REQUIRE(peekLexeme1.symbol == "a");
+}
+
+TEST_CASE("GetLexeme peeks correctly after repeated uses", "[lexer]") {
+	// TODO: Maybe this should be shared w/ actual lexer code somehow
+	constexpr int LEXER_WINDOW_SIZE = 5;
+	Lexer::LoadInputString("0 1 2 3 4 5 6 7 8 9 10");
+	int currNum = 0;
+	while (currNum <= 10) {
+		Lexeme lexeme = Lexer::peekLexeme();
+		REQUIRE(lexeme.token == Token::NUM);
+		REQUIRE(lexeme.symbol == std::to_string(currNum));
+		int lastNum = std::min(currNum + LEXER_WINDOW_SIZE, 10);
+		for (int num = currNum; num <= lastNum; num++) {
+			Lexeme peekLexeme = Lexer::peekLexeme(num - currNum + 1);
+			REQUIRE(peekLexeme.token == Token::NUM);
+			REQUIRE(peekLexeme.symbol == std::to_string(num));
+		}
+		Lexer::getLexeme();
+		currNum++;
+	}
 }

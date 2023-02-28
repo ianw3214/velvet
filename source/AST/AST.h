@@ -38,8 +38,11 @@ class TypeNode : public ASTNode {
 public:
     Token mTypeClass;
     std::string mIdentifier;
+    // TODO: This will have to handle multidimensional array types
+    bool mIsArray;
+    NumberNode* mArraySize;
 
-    TypeNode(Token typeClass, const std::string& identifier = "") : mTypeClass(typeClass), mIdentifier(identifier) {}
+    TypeNode(Token typeClass, bool isArray = false, NumberNode* arraySize = nullptr, const std::string& identifier = "") : mTypeClass(typeClass), mIdentifier(identifier), mIsArray(isArray), mArraySize(arraySize) {}
     llvm::Value* Codegen() override;
 };
 
@@ -77,23 +80,13 @@ public:
     llvm::Value* Codegen() override;
 };
 
-class RelationalExpressionNode: public ASTNode {
+class BinaryOperatorNode : public ASTNode {
 public:
     ASTNode* mLeft;
     ASTNode* mRight;
     Token mOperator;
 
-    RelationalExpressionNode(ASTNode* left, ASTNode* right, Token op) : mLeft(left), mRight(right), mOperator(op) {}
-    llvm::Value* Codegen() override;
-};
-
-class BinaryExpressionNode : public ASTNode {
-public:
-    ASTNode* mLeft;
-    ASTNode* mRight;
-    Token mOperator;
-
-    BinaryExpressionNode(ASTNode* left, ASTNode* right, Token op) : mLeft(left), mRight(right), mOperator(op) {}
+    BinaryOperatorNode(ASTNode* left, ASTNode* right, Token op) : mLeft(left), mRight(right), mOperator(op) {}
     llvm::Value* Codegen() override;
 };
 
@@ -104,15 +97,6 @@ public:
     ASTNode* mExpression;
 
     VariableDeclarationNode(const std::string id, TypeNode* type, ASTNode* expr) : mIdentifier(id), mType(type), mExpression(expr) {}
-    llvm::Value* Codegen() override;
-};
-
-class AssignmentExpressionNode : public ASTNode {
-public:
-    std::string mIdentifier;
-    ASTNode* mExpression;
-
-    AssignmentExpressionNode(const std::string& id, ASTNode* expr) : mIdentifier(id), mExpression(expr) {}
     llvm::Value* Codegen() override;
 };
 
@@ -158,5 +142,16 @@ public:
     FunctionArgumentListNode* mArgumentList;
 
     FunctionCallNode(const std::string& funcName, FunctionArgumentListNode* argumentList) : mFuncName(funcName), mArgumentList(argumentList) {}
+    llvm::Value* Codegen() override;
+};
+
+class ArrayAccessNode : public ASTNode {
+public:
+    std::string mName;
+    ASTNode* mArrayIndexExpr;
+
+    bool mIsMemLocation;
+
+    ArrayAccessNode(const std::string& name, ASTNode* arrayIndexExpr, bool isMemLocation = false) : mName(name), mArrayIndexExpr(arrayIndexExpr), mIsMemLocation(isMemLocation) {}
     llvm::Value* Codegen() override;
 };

@@ -49,23 +49,17 @@ int main(int argc, char* argv[]) {
             std::cout << "VISITED LOOP EXPR NODE\n";
             stack.push_back(loopExpr->mBlockNode);
         }
-        if (RelationalExpressionNode* relOp = dynamic_cast<RelationalExpressionNode*>(top)) {
-            std::cout << "VISITED REL OPERATOR NODE: " << "relOp->mOperator" << '\n';
-            stack.push_back(relOp->mRight);
-            stack.push_back(relOp->mLeft);
-        }
-        if (BinaryExpressionNode* binExpr = dynamic_cast<BinaryExpressionNode*>(top)) {
-            std::cout << "VISITED BINARY EXPRESSION NODE: " << "binExpr->mOperator" << '\n';
-            stack.push_back(binExpr->mRight);
-            stack.push_back(binExpr->mLeft);
-        }
-        if (AssignmentExpressionNode* assignExpr = dynamic_cast<AssignmentExpressionNode*>(top)) {
-            std::cout << "VISITED ASSIGNMENT STATEMENT NODE: " << assignExpr->mIdentifier << '\n';
-            stack.push_back(assignExpr->mExpression);
+        if (BinaryOperatorNode* binOp = dynamic_cast<BinaryOperatorNode*>(top)) {
+            std::cout << "VISITED BINARY OPERATOR NODE: " << "relOp->mOperator (SHOULD IMPLEMENT THIS)" << '\n';
+            stack.push_back(binOp->mRight);
+            stack.push_back(binOp->mLeft);
         }
         if (VariableDeclarationNode* declStmt = dynamic_cast<VariableDeclarationNode*>(top)) {
-            std::cout << "VISITED VARIABLE DECLARATION NODE: " << declStmt->mIdentifier << " (type: " << declStmt->mType << ")\n";
-            stack.push_back(declStmt->mExpression);
+            std::cout << "VISITED VARIABLE DECLARATION NODE: " << declStmt->mIdentifier << '\n';
+            stack.push_back(declStmt->mType);
+            if (declStmt->mExpression) {
+                stack.push_back(declStmt->mExpression);
+            }
         }
         if (ExpressionListNode* exprList = dynamic_cast<ExpressionListNode*>(top)) {
             std::cout << "VISITED EXPRESSION LIST OF SIZE " << exprList->mExpressions.size() << '\n';
@@ -98,6 +92,7 @@ int main(int argc, char* argv[]) {
             if (type->mTypeClass == Token::TYPE_F32) std::cout << "VISITED TYPE NODE (f32)\n";
             if (type->mTypeClass == Token::TYPE_BOOL) std::cout << "VISITED TYPE NODE (bool)\n";
             if (type->mTypeClass == Token::ID) std::cout << "VISITED TYPE NODE (" + type->mIdentifier + ")\n";
+            std::cout << "  TYPE IS ARRAY: " << (type->mIsArray ? "TRUE (" : "FALSE") << (type->mIsArray ? type->mArraySize->mNumber + ')' : "") << '\n';
         }
         if (FunctionCallNode* funcCall = dynamic_cast<FunctionCallNode*>(top)) {
             std::cout << "VISITED FUNCTION CALL " << funcCall->mFuncName << '\n';
@@ -106,6 +101,10 @@ int main(int argc, char* argv[]) {
                     stack.push_back(node);
                 }
             }
+        }
+        if (ArrayAccessNode* arrayAccess = dynamic_cast<ArrayAccessNode*>(top)) {
+            std::cout << "VISITED ARRAY ACCESS NODE: " << arrayAccess->mName << '\n';
+            stack.push_back(arrayAccess->mArrayIndexExpr);
         }
     }
 

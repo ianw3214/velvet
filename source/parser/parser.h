@@ -18,14 +18,13 @@ namespace Parser {
     FunctionArgumentListNode* ParseFunctionArgList();
     FunctionArgumentListNode* ParseFunctionArgListPost();
     VariableDeclarationNode* ParseVariableDeclaration();
-    AssignmentExpressionNode* ParseAssignmentExpr();
     ASTNode* ParseExpr();
     BlockExpressionNode* ParseBlockExpr();
     IfExpressionNode* ParseIfExpr();
     LoopExpressionNode* ParseLoopExpr();
-    ASTNode* ParseRelExpr();
-    ASTNode* ParseBinExpr();
-    ASTNode* ParseBinExprRHS(ASTNode* left);
+    ASTNode* ParseBinopExpr();
+    ASTNode* ParseBinopExprPost(ASTNode* left);
     TypeNode* ParseType();
     ASTNode* ParseTerm();
+    ASTNode* ParseArrayAccess();
 }

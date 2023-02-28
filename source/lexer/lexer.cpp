@@ -91,6 +91,14 @@ std::pair<int, Token> _advanceLookahead(int lookahead) {
         lookahead_char = inputString[++lookahead];
         token = Token::RIGHT_CURLY_BRACKET;
     } break;
+    case '[': {
+        lookahead_char = inputString[++lookahead];
+        token = Token::LEFT_SQUARE_BRACKET;
+    } break;
+    case ']': {
+        lookahead_char = inputString[++lookahead];
+        token = Token::RIGHT_SQUARE_BRACKET;
+    } break;
     case '+': {
         lookahead_char = inputString[++lookahead];
         token = Token::PLUS;
@@ -178,6 +186,9 @@ std::pair<int, Token> _advanceLookahead(int lookahead) {
 void Lexer::LoadInputString(const std::string& string) {
     inputString = string;
     curr_index = 0;
+
+    currToken = 0;
+    currentWindow = 0;
 }
 
 Lexeme Lexer::peekLexeme(int peekahead) {
@@ -190,43 +201,44 @@ Lexeme Lexer::peekLexeme(int peekahead) {
     targetIndex -= targetIndex >= WINDOW_SIZE ? WINDOW_SIZE : 0;
     size_t nextIndex = currToken + currentWindow;
 
-    // Skip the tokens that we've already peeked
-    int numTokensToLex = peekahead - currentWindow;
-    currentWindow += numTokensToLex;
-    // TODO: Assert that this is greater than 0
+    if (peekahead > currentWindow) {
+        // Skip the tokens that we've already peeked
+        int numTokensToLex = peekahead - currentWindow;
+        currentWindow += numTokensToLex;
 
-    while (numTokensToLex > 0) {
-        std::pair<int, Token> new_lookahead = _advanceLookahead(curr_index);
+        while (numTokensToLex > 0) {
+            std::pair<int, Token> new_lookahead = _advanceLookahead(curr_index);
 
-        Lexeme result;
-        size_t size = static_cast<size_t>(new_lookahead.first - curr_index);
-        result.symbol = inputString.substr(curr_index, size);
-        result.token = new_lookahead.second;
-        curr_index = new_lookahead.first;
-
-        if (result.token == Token::WHITESPACE) {
-            int token_start = new_lookahead.first;
-            new_lookahead = _advanceLookahead(new_lookahead.first);
-
-            size_t size = static_cast<size_t>(new_lookahead.first - token_start);
-            result.symbol = inputString.substr(token_start, size);
+            Lexeme result;
+            size_t size = static_cast<size_t>(new_lookahead.first - curr_index);
+            result.symbol = inputString.substr(curr_index, size);
             result.token = new_lookahead.second;
             curr_index = new_lookahead.first;
-        }
 
-        if (result.token == Token::ID) {
-            auto entry = keywords.find(result.symbol);
-            if (entry != keywords.end()) {
-                result.token = entry->second;
+            if (result.token == Token::WHITESPACE) {
+                int token_start = new_lookahead.first;
+                new_lookahead = _advanceLookahead(new_lookahead.first);
+
+                size_t size = static_cast<size_t>(new_lookahead.first - token_start);
+                result.symbol = inputString.substr(token_start, size);
+                result.token = new_lookahead.second;
+                curr_index = new_lookahead.first;
             }
-        }
 
-        // return result;
-        nextIndex -= nextIndex >= WINDOW_SIZE ? WINDOW_SIZE : 0;
-        tokenBuffer[nextIndex] = result.token;
-        stringBuffer[nextIndex] = result.symbol;
-        numTokensToLex--;
-        nextIndex++;
+            if (result.token == Token::ID) {
+                auto entry = keywords.find(result.symbol);
+                if (entry != keywords.end()) {
+                    result.token = entry->second;
+                }
+            }
+
+            // return result;
+            nextIndex -= nextIndex >= WINDOW_SIZE ? WINDOW_SIZE : 0;
+            tokenBuffer[nextIndex] = result.token;
+            stringBuffer[nextIndex] = result.symbol;
+            numTokensToLex--;
+            nextIndex++;
+        }
     }
 
     const Token token = tokenBuffer[targetIndex];

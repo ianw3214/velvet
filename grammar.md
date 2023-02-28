@@ -20,15 +20,12 @@
   - fn_arg_list ',' expr
   - expr
   - **empty**
-- assign_expr
-  - id ':=' expr
 - expr
   - fn_decl_expr
   - var_decl_expr
-  - assign_expr
   - block_expr
   - if_expr
-  - rel_expr
+  - binop_expr
   - loop_expr
   - fn_call_expr
 - block_expr
@@ -36,23 +33,28 @@
 - if_expr
   - if expr then expr
   - if expr then expr else expr
-- rel_expr
-  - bin_expr relop bin_expr
-  - bin_expr
+- binop_expr
+  - expr binop term
+  - term
+- binop
+  - relop
+  - arithmetic
+  - assignment
 - loop_expr
   - loop block_expr
-- bin_expr
-  - bin_expr binop term
-  - term
 - type
   - 'i32'
   - 'f32'
   - 'bool'
   - id
+  - type []
 - term
   - id
   - num
   - ( expr )
+  - array_access
+- array_access
+  - id [ expr ]
 - relop
   - '>'
   - '<'
@@ -60,7 +62,7 @@
   - '<='
   - '='
   - '<>'
-- binop
+- arithmetic
   - '+'
   - '-'
   - '*'
@@ -94,15 +96,12 @@
 - fn_arg_list_post
   - ',' expr fn_arg_list_pos
   - **empty**
-- assign_expr
-  - id ':=' expr
 - expr
   - fn_decl_expr
   - var_decl_expr
   - assign_expr
   - block_expr
   - if_expr
-  - rel_expr
   - loop_expr
   - fn_call_expr
 - block_expr
@@ -110,25 +109,30 @@
 - if_expr
   - if expr then expr
   - if expr then expr else expr
-- rel_expr
-  - bin_expr relop bin_expr
-  - bin_expr
+- binop_expr
+  - term binop_expr_post
+- binop_expr_post
+  - binop binop_expr binop_expr_rhs
+  - **empty**
+- binop
+  - relop
+  - arithmetic
+  - assignment
 - loop_expr
   - loop block_expr
-- bin_expr
-  - term bin_expr_rhs
-- bin_expr_rhs
-  - binop bin_expr bin_expr_rhs
-  - **empty**
 - type
   - 'i32'
   - 'f32'
   - 'bool'
   - id
+  - type [ num ]
 - term
   - id
   - num
   - ( expr )
+  - array_access
+- array_access
+  - id [ expr ]
 - relop
   - '>'
   - '<'
@@ -136,7 +140,7 @@
   - '<='
   - '='
   - '<>'
-- binop
+- arithmetic
   - '+'
   - '-'
   - '*'
