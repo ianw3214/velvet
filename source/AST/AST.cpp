@@ -203,12 +203,7 @@ llvm::Value* BinaryOperatorNode::Codegen() {
 		// TODO: Error
 		return nullptr;
 	}
-	/*
-	if (left->getType() != right->getType()) {
-		// TODO: Error
-		return nullptr;
-	}
-	*/
+	// TODO: Might want to perform some form of type checking/casting here
 	switch (mOperator) {
 	case Token::PLUS: {
 		if (left->getType()->isFloatTy()) {
