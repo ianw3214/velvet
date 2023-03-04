@@ -16,10 +16,16 @@
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
 
+struct NamedValueData {
+	// TODO: This should probably store something better than the raw type node
+	TypeNode* mType;
+	llvm::AllocaInst* mAlloca;
+};
+
 static std::unique_ptr<llvm::LLVMContext> sContext;
 static std::unique_ptr<llvm::Module> sModule;
 static std::unique_ptr<llvm::IRBuilder<>> sBuilder;
-static std::unordered_map<std::string, llvm::AllocaInst*> sNamedValues;
+static std::unordered_map<std::string, NamedValueData> sNamedValues;
 static std::unordered_map<std::string, llvm::Function*> sFunctions;
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -44,6 +50,7 @@ void printLLVM() {
 	const llvm::Target* target = llvm::TargetRegistry::lookupTarget(targetTriple, targetError);
 	if (!target) {
 		// TODO: Assert...
+		return;
 	}
 
 	const std::string CPU = "generic";
@@ -92,8 +99,13 @@ namespace {
 	llvm::Type* GetLLVMType(TypeNode* type) {
 		llvm::Type* rawType = GetRawLLVMType(type);
 		if (type->mIsArray) {
-			const int arraySize = std::stoi(type->mArraySize->mNumber);
-			return llvm::ArrayType::get(rawType, arraySize);
+			if (type->mArraySize) {
+				const int arraySize = std::stoi(type->mArraySize->mNumber);
+				return llvm::ArrayType::get(rawType, arraySize);
+			}
+			else {
+				return llvm::PointerType::getUnqual(rawType);
+			}
 		}
 		return rawType;
 	}
@@ -107,7 +119,8 @@ namespace {
 /////////////////////////////////////////////////////////////////////////////////////////
 
 llvm::Value* IdentifierNode::Codegen() {
-	llvm::AllocaInst* value = sNamedValues[mIdentifier];
+	NamedValueData& valueData = sNamedValues[mIdentifier];
+	llvm::AllocaInst* value = valueData.mAlloca;
 	if (!value) {
 		// TODO: Error
 		return nullptr;
@@ -263,7 +276,7 @@ llvm::Value* VariableDeclarationNode::Codegen() {
 	llvm::AllocaInst* allocaInst = CreateEntryBlockAlloca(parent, mIdentifier, mType);
 	sBuilder->CreateStore(initVal, allocaInst);
 
-	sNamedValues[mIdentifier] = allocaInst;
+	sNamedValues[mIdentifier] = NamedValueData{ mType, allocaInst };
 	return nullptr;
 }
 
@@ -297,7 +310,7 @@ llvm::Value* FunctionDeclNode::Codegen() {
 		FunctionParamNode* param = mParamList->mParams[index];
 		llvm::AllocaInst* allocaInst = CreateEntryBlockAlloca(func, param->mName, param->mType);
 		sBuilder->CreateStore(&arg, allocaInst);
-		sNamedValues[param->mName] = allocaInst;
+		sNamedValues[param->mName] = NamedValueData{ param->mType, allocaInst };
 		index++;
 	}
 
@@ -348,18 +361,23 @@ llvm::Value* FunctionCallNode::Codegen() {
 llvm::Value* ArrayAccessNode::Codegen() {
 	// This assumes the codegen is used to get the value of an array element
 	// TODO: Better way to differentiate between lvalue/rvalue access of array
-	llvm::AllocaInst* value = sNamedValues[mName];
+	NamedValueData& valueData = sNamedValues[mName];
+	llvm::AllocaInst* value = valueData.mAlloca;
 	if (!value) {
 		// TODO: Error
 		return nullptr;
 	}
 	else {
-		llvm::Type* type = sNamedValues[mName]->getAllocatedType();
-		llvm::Type* elementType = type->getArrayElementType();
-		llvm::ConstantInt* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*sContext), 0);
+		// llvm::Type* type = GetLLVMType(valueData.mType);
+		llvm::Type* elementType = GetRawLLVMType(valueData.mType);
+		// elementType = type->getArrayElementType();
+		// TODO: Figure out why this zero index is no longer required
+		//	- I'm confused... probably something to do with opaque pointers?
+		//  - I think it's probably because I changed the type being passed into GEP to element type instead of ptr/array type
+		// llvm::ConstantInt* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*sContext), 0);
 		llvm::Value* index = mArrayIndexExpr->Codegen();
-		llvm::Value* indices[] = { zero, index };
-		llvm::Value* elementPtr = sBuilder->CreateGEP(type, value, indices);
+		llvm::Value* indices[] = { index };
+		llvm::Value* elementPtr = sBuilder->CreateGEP(elementType, value, indices);
 		if (mIsMemLocation) {
 			return elementPtr;
 		}

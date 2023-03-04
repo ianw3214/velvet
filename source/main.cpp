@@ -92,7 +92,7 @@ int main(int argc, char* argv[]) {
             if (type->mTypeClass == Token::TYPE_F32) std::cout << "VISITED TYPE NODE (f32)\n";
             if (type->mTypeClass == Token::TYPE_BOOL) std::cout << "VISITED TYPE NODE (bool)\n";
             if (type->mTypeClass == Token::ID) std::cout << "VISITED TYPE NODE (" + type->mIdentifier + ")\n";
-            std::cout << "  TYPE IS ARRAY: " << (type->mIsArray ? "TRUE (" : "FALSE") << (type->mIsArray ? type->mArraySize->mNumber + ')' : "") << '\n';
+            std::cout << "  TYPE IS ARRAY: " << (type->mIsArray ? "TRUE" : "FALSE") << (type->mIsArray && type->mArraySize ? '(' + type->mArraySize->mNumber + ')' : "") << '\n';
         }
         if (FunctionCallNode* funcCall = dynamic_cast<FunctionCallNode*>(top)) {
             std::cout << "VISITED FUNCTION CALL " << funcCall->mFuncName << '\n';
