@@ -28,6 +28,7 @@
   - binop_expr
   - loop_expr
   - fn_call_expr
+  - return_expr
 - block_expr
   - { expr_list }
 - if_expr
@@ -42,6 +43,9 @@
   - assignment
 - loop_expr
   - loop block_expr
+- return_expr
+  - 'return'
+  - 'return' expr
 - type
   - 'i32'
   - 'f32'
@@ -105,6 +109,7 @@
   - if_expr
   - loop_expr
   - fn_call_expr
+  - return_expr
 - block_expr
   - { expr_list }
 - if_expr
@@ -121,6 +126,9 @@
   - assignment
 - loop_expr
   - loop block_expr
+- return_expr
+  - 'return'
+  - 'return' expr
 - type
   - 'i32'
   - 'f32'

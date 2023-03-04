@@ -24,6 +24,7 @@ namespace {
         { "loop", Token::LOOP },
         { "var", Token::VAR_DECL },
         { "fn", Token::FN_DECL },
+        { "return", Token::RETURN },
         // types
         { "i32" , Token::TYPE_I32 },
         { "f32" , Token::TYPE_F32 },
