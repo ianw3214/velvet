@@ -29,6 +29,7 @@
   - loop_expr
   - fn_call_expr
   - return_expr
+  - break_expr
 - block_expr
   - { expr_list }
 - if_expr
@@ -46,6 +47,8 @@
 - return_expr
   - 'return'
   - 'return' expr
+- break_expr
+  - 'break'
 - type
   - 'i32'
   - 'f32'
@@ -110,6 +113,7 @@
   - loop_expr
   - fn_call_expr
   - return_expr
+  - break_expr
 - block_expr
   - { expr_list }
 - if_expr
@@ -129,6 +133,8 @@
 - return_expr
   - 'return'
   - 'return' expr
+- break_expr
+  - 'break'
 - type
   - 'i32'
   - 'f32'
