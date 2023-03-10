@@ -156,16 +156,24 @@ llvm::Value* IfExpressionNode::Codegen() {
 
 	llvm::Function* parentFunc = sBuilder->GetInsertBlock()->getParent();
 	llvm::BasicBlock* thenBasicBlock = llvm::BasicBlock::Create(*sContext, "then", parentFunc);
-	llvm::BasicBlock* elseBasicBlock = llvm::BasicBlock::Create(*sContext, "else");
+	llvm::BasicBlock* elseBasicBlock = nullptr;
+	if (mElseNode) {
+		elseBasicBlock = llvm::BasicBlock::Create(*sContext, "else");
+	}
 	llvm::BasicBlock* mergeBasicBlock = llvm::BasicBlock::Create(*sContext, "ifcont");
-	sBuilder->CreateCondBr(condition, thenBasicBlock, elseBasicBlock);
+	sBuilder->CreateCondBr(condition, thenBasicBlock, elseBasicBlock ? elseBasicBlock : mergeBasicBlock);
 
 	sBuilder->SetInsertPoint(thenBasicBlock);
 	llvm::Value* thenVal = mThenNode->Codegen();
 	if (!thenVal) {
 		return nullptr;
 	}
-	sBuilder->CreateBr(mergeBasicBlock);
+	if (thenBasicBlock->getTerminator() && thenBasicBlock->getTerminator()->getOpcode() != llvm::Instruction::Ret) {
+		sBuilder->CreateBr(mergeBasicBlock);
+	}
+	else {
+		thenVal = nullptr;
+	}
 	thenBasicBlock = sBuilder->GetInsertBlock();
 
 	llvm::Value* elseVal = nullptr;
@@ -183,13 +191,21 @@ llvm::Value* IfExpressionNode::Codegen() {
 
 	parentFunc->getBasicBlockList().push_back(mergeBasicBlock);
 	sBuilder->SetInsertPoint(mergeBasicBlock);
-	llvm::PHINode* phi = sBuilder->CreatePHI(thenVal->getType(), 2, "iftmp");
-	phi->addIncoming(thenVal, thenBasicBlock);
-	if (elseVal) {
-		phi->addIncoming(elseVal, elseBasicBlock);
+	if (thenVal && elseVal) {
+		llvm::PHINode* phi = sBuilder->CreatePHI(thenVal->getType(), 2, "iftmp");
+		phi->addIncoming(thenVal, thenBasicBlock);
+		if (elseVal) {
+			phi->addIncoming(elseVal, elseBasicBlock);
+		}
+		return phi;
 	}
-
-	return phi;
+	else if (thenVal) {
+		return thenVal;
+	}
+	else if (elseVal) {
+		return elseVal;
+	}
+	return nullptr;
 }
 
 llvm::Value* LoopExpressionNode::Codegen() {
@@ -359,6 +375,11 @@ llvm::Value* FunctionCallNode::Codegen() {
 }
 
 llvm::Value* ReturnExpressionNode::Codegen() {
+	if (mExpression) {
+		llvm::Value* expression = mExpression->Codegen();
+		return sBuilder->CreateRet(expression);
+	}
+	// TODO: Handle void types
 	return nullptr;
 }
 

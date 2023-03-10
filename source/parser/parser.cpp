@@ -40,7 +40,7 @@ ExpressionListNode* Parser::ParseExprListPost() {
     Lexer::getLexeme();
     ASTNode* expression = ParseExpr();
     if (!expression) {
-        std::cout << "Error! Expected expression to be parsed\n";
+        std::cout << "Error! Expected expression to be parsed (POST)\n";
         return nullptr;
     }
     ExpressionListNode* expression_list_post = ParseExprListPost();
