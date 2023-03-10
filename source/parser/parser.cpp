@@ -217,6 +217,13 @@ ASTNode* Parser::ParseExpr() {
     case Token::LOOP: {
         return ParseLoopExpr();
     } break;
+    case Token::RETURN: {
+        return ParseReturnExpr();
+    } break;
+    case Token::BREAK: {
+        Lexer::getLexeme();
+        return new BreakExpressionNode();
+    } break;
     case Token::ID: {
         lexeme = Lexer::peekLexeme(2);
         if (lexeme.token == Token::LEFT_BRACKET) {
@@ -270,6 +277,22 @@ LoopExpressionNode* Parser::ParseLoopExpr() {
     }
     BlockExpressionNode* block = ParseBlockExpr();
     return new LoopExpressionNode(block);
+}
+
+ReturnExpressionNode* Parser::ParseReturnExpr() {
+    Lexeme lexeme = Lexer::getLexeme();
+    if (lexeme.token != Token::RETURN) {
+        std::cout << "ERROR! Expected 'return'\n";
+    }
+    // TODO: This feels kinda hacky but idk what else to do
+    //  - maybe have a first set for what can count as an epxression?
+    //  - or just leave it as fine and call it a day lol
+    ASTNode* expression = nullptr;
+    lexeme = Lexer::peekLexeme();
+    if (lexeme.token != Token::EXPRESSION_END) {
+        expression = ParseExpr();
+    }
+    return new ReturnExpressionNode(expression);
 }
 
 ASTNode* Parser::ParseBinopExpr() {

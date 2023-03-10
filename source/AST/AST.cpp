@@ -358,6 +358,14 @@ llvm::Value* FunctionCallNode::Codegen() {
 	return call;
 }
 
+llvm::Value* ReturnExpressionNode::Codegen() {
+	return nullptr;
+}
+
+llvm::Value* BreakExpressionNode::Codegen() {
+	return nullptr;
+}
+
 llvm::Value* ArrayAccessNode::Codegen() {
 	// This assumes the codegen is used to get the value of an array element
 	// TODO: Better way to differentiate between lvalue/rvalue access of array

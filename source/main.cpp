@@ -102,6 +102,15 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
+        if (ReturnExpressionNode* returnExpr = dynamic_cast<ReturnExpressionNode*>(top)) {
+            std::cout << "VISITED RETURN EXPRESSION\n";
+            if (returnExpr->mExpression) {
+                stack.push_back(returnExpr->mExpression);
+            }
+        }
+        if (BreakExpressionNode* breakExpr = dynamic_cast<BreakExpressionNode*>(top)) {
+            std::cout << "VISITED BREAK EXPRESSION\n";
+        }
         if (ArrayAccessNode* arrayAccess = dynamic_cast<ArrayAccessNode*>(top)) {
             std::cout << "VISITED ARRAY ACCESS NODE: " << arrayAccess->mName << '\n';
             stack.push_back(arrayAccess->mArrayIndexExpr);
