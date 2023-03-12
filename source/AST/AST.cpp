@@ -385,12 +385,8 @@ llvm::Value* FunctionCallNode::Codegen() {
 }
 
 llvm::Value* ReturnExpressionNode::Codegen() {
-	if (mExpression) {
-		llvm::Value* expression = mExpression->Codegen();
-		return sBuilder->CreateRet(expression);
-	}
-	// TODO: Handle void types
-	return nullptr;
+	llvm::Value* expression = mExpression ? mExpression->Codegen() : nullptr;
+	return sBuilder->CreateRet(expression);
 }
 
 llvm::Value* BreakExpressionNode::Codegen() {
