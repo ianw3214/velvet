@@ -107,7 +107,6 @@
 - expr
   - fn_decl_expr
   - var_decl_expr
-  - assign_expr
   - block_expr
   - if_expr
   - loop_expr

@@ -226,7 +226,8 @@ llvm::Value* LoopExpressionNode::Codegen() {
 }
 
 llvm::Value* BinaryOperatorNode::Codegen() {
-	llvm::Value* left = mLeft->Codegen();
+	// deal with equals operator later, that needs to get memory location rather than value
+	llvm::Value* left = mOperator == Token::EQUALS ? nullptr : mLeft->Codegen();
 	llvm::Value* right = mRight->Codegen();
 	if (!left || !right) {
 		// TODO: Error
@@ -268,6 +269,15 @@ llvm::Value* BinaryOperatorNode::Codegen() {
 		}
 	} break;
 	case Token::ASSIGNMENT: {
+		if (IdentifierNode * identifier = dynamic_cast<IdentifierNode*>(mLeft)) {
+			left = sNamedValues[identifier->mIdentifier].mAlloca;
+		}
+		else if (dynamic_cast<ArrayAccessNode*>(mLeft)) {
+			left = mLeft->Codegen();
+		}
+		else {
+			// TODO: ERROR!!!
+		}
 		// TODO: This should be differentiated in grammar so lvalue vs rvalue identifier nodes are handled differently
 		return sBuilder->CreateStore(right, left);
 	} break;
