@@ -28,6 +28,8 @@ static std::unique_ptr<llvm::IRBuilder<>> sBuilder;
 static std::unordered_map<std::string, NamedValueData> sNamedValues;
 static std::unordered_map<std::string, llvm::Function*> sFunctions;
 
+static llvm::BasicBlock* sCurrentLoopEndBlock = nullptr;
+
 /////////////////////////////////////////////////////////////////////////////////////////
 // DEBUG
 void initLLVM() {
@@ -211,12 +213,17 @@ llvm::Value* IfExpressionNode::Codegen() {
 llvm::Value* LoopExpressionNode::Codegen() {
 	llvm::Function* func = sBuilder->GetInsertBlock()->getParent();
 	llvm::BasicBlock* loopBlock = llvm::BasicBlock::Create(*sContext, "loop", func);
+	llvm::BasicBlock* loopEndBlock = llvm::BasicBlock::Create(*sContext, "loop_end", func);
+	sCurrentLoopEndBlock = loopEndBlock;
 
 	sBuilder->CreateBr(loopBlock);
 	sBuilder->SetInsertPoint(loopBlock);
 
 	llvm::Value* blockExpressionValue = mBlockNode->Codegen();
 	sBuilder->CreateBr(loopBlock);
+
+	sBuilder->SetInsertPoint(loopEndBlock);
+	sCurrentLoopEndBlock = nullptr;
 
 	// TODO: This should return last expression of the loop?
 	//  - Also need to handle break and return statements?
@@ -390,6 +397,12 @@ llvm::Value* ReturnExpressionNode::Codegen() {
 }
 
 llvm::Value* BreakExpressionNode::Codegen() {
+	if (sCurrentLoopEndBlock) {
+		llvm::BranchInst* breakExpr = sBuilder->CreateBr(sCurrentLoopEndBlock);
+		sBuilder->SetInsertPoint(sCurrentLoopEndBlock);
+		return breakExpr;
+	}
+	// TODO: ERROR
 	return nullptr;
 }
 
