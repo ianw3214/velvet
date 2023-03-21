@@ -28,6 +28,7 @@ static std::unique_ptr<llvm::IRBuilder<>> sBuilder;
 static std::unordered_map<std::string, NamedValueData> sNamedValues;
 static std::unordered_map<std::string, llvm::Function*> sFunctions;
 
+static llvm::BasicBlock* sCurrentLoopBlock = nullptr;
 static llvm::BasicBlock* sCurrentLoopEndBlock = nullptr;
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -170,7 +171,8 @@ llvm::Value* IfExpressionNode::Codegen() {
 	if (!thenVal) {
 		return nullptr;
 	}
-	if (thenBasicBlock->getTerminator() && thenBasicBlock->getTerminator()->getOpcode() != llvm::Instruction::Ret) {
+	// Don't create a branch back to the merge block if the block already alters control flow with a jump
+	if (thenBasicBlock->getTerminator() && (thenBasicBlock->getTerminator()->getOpcode() != llvm::Instruction::Ret && thenBasicBlock->getTerminator()->getOpcode() != llvm::Instruction::Br)) {
 		sBuilder->CreateBr(mergeBasicBlock);
 	}
 	else {
@@ -214,6 +216,8 @@ llvm::Value* LoopExpressionNode::Codegen() {
 	llvm::Function* func = sBuilder->GetInsertBlock()->getParent();
 	llvm::BasicBlock* loopBlock = llvm::BasicBlock::Create(*sContext, "loop", func);
 	llvm::BasicBlock* loopEndBlock = llvm::BasicBlock::Create(*sContext, "loop_end", func);
+	// TODO: handle nested loops? :o
+	sCurrentLoopBlock = loopBlock;
 	sCurrentLoopEndBlock = loopEndBlock;
 
 	sBuilder->CreateBr(loopBlock);
@@ -223,6 +227,7 @@ llvm::Value* LoopExpressionNode::Codegen() {
 	sBuilder->CreateBr(loopBlock);
 
 	sBuilder->SetInsertPoint(loopEndBlock);
+	sCurrentLoopBlock = nullptr;
 	sCurrentLoopEndBlock = nullptr;
 
 	// TODO: This should return last expression of the loop?
@@ -399,7 +404,17 @@ llvm::Value* ReturnExpressionNode::Codegen() {
 llvm::Value* BreakExpressionNode::Codegen() {
 	if (sCurrentLoopEndBlock) {
 		llvm::BranchInst* breakExpr = sBuilder->CreateBr(sCurrentLoopEndBlock);
-		sBuilder->SetInsertPoint(sCurrentLoopEndBlock);
+		// sBuilder->SetInsertPoint(sCurrentLoopEndBlock);
+		return breakExpr;
+	}
+	// TODO: ERROR
+	return nullptr;
+}
+
+llvm::Value* ContinueExpressionNode::Codegen() {
+	if (sCurrentLoopBlock) {
+		llvm::BranchInst* breakExpr = sBuilder->CreateBr(sCurrentLoopBlock);
+		// sBuilder->SetInsertPoint(sCurrentLoopBlock);
 		return breakExpr;
 	}
 	// TODO: ERROR

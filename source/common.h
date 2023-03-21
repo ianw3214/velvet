@@ -19,6 +19,7 @@ enum class Token {
     LOOP,
     RETURN,
     BREAK,
+    CONTINUE,
 
     // identifiers/literals
     ID,

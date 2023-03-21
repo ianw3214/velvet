@@ -159,6 +159,12 @@ public:
     llvm::Value* Codegen() override;
 };
 
+class ContinueExpressionNode : public ASTNode {
+public:
+    ContinueExpressionNode() = default;
+    llvm::Value* Codegen() override;
+};
+
 class ArrayAccessNode : public ASTNode {
 public:
     std::string mName;

@@ -224,6 +224,10 @@ ASTNode* Parser::ParseExpr() {
         Lexer::getLexeme();
         return new BreakExpressionNode();
     } break;
+    case Token::CONTINUE: {
+        Lexer::getLexeme();
+        return new ContinueExpressionNode();
+    }
     case Token::ID: {
         lexeme = Lexer::peekLexeme(2);
         if (lexeme.token == Token::LEFT_BRACKET) {
