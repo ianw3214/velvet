@@ -22,6 +22,7 @@ namespace Parser {
     BlockExpressionNode* ParseBlockExpr();
     IfExpressionNode* ParseIfExpr();
     LoopExpressionNode* ParseLoopExpr();
+    ReturnExpressionNode* ParseReturnExpr();
     ASTNode* ParseBinopExpr();
     ASTNode* ParseBinopExprPost(ASTNode* left);
     TypeNode* ParseType();

@@ -28,6 +28,9 @@ static std::unique_ptr<llvm::IRBuilder<>> sBuilder;
 static std::unordered_map<std::string, NamedValueData> sNamedValues;
 static std::unordered_map<std::string, llvm::Function*> sFunctions;
 
+static llvm::BasicBlock* sCurrentLoopBlock = nullptr;
+static llvm::BasicBlock* sCurrentLoopEndBlock = nullptr;
+
 /////////////////////////////////////////////////////////////////////////////////////////
 // DEBUG
 void initLLVM() {
@@ -156,16 +159,25 @@ llvm::Value* IfExpressionNode::Codegen() {
 
 	llvm::Function* parentFunc = sBuilder->GetInsertBlock()->getParent();
 	llvm::BasicBlock* thenBasicBlock = llvm::BasicBlock::Create(*sContext, "then", parentFunc);
-	llvm::BasicBlock* elseBasicBlock = llvm::BasicBlock::Create(*sContext, "else");
+	llvm::BasicBlock* elseBasicBlock = nullptr;
+	if (mElseNode) {
+		elseBasicBlock = llvm::BasicBlock::Create(*sContext, "else");
+	}
 	llvm::BasicBlock* mergeBasicBlock = llvm::BasicBlock::Create(*sContext, "ifcont");
-	sBuilder->CreateCondBr(condition, thenBasicBlock, elseBasicBlock);
+	sBuilder->CreateCondBr(condition, thenBasicBlock, elseBasicBlock ? elseBasicBlock : mergeBasicBlock);
 
 	sBuilder->SetInsertPoint(thenBasicBlock);
 	llvm::Value* thenVal = mThenNode->Codegen();
 	if (!thenVal) {
 		return nullptr;
 	}
-	sBuilder->CreateBr(mergeBasicBlock);
+	// Don't create a branch back to the merge block if the block already alters control flow with a jump
+	if (thenBasicBlock->getTerminator() && (thenBasicBlock->getTerminator()->getOpcode() != llvm::Instruction::Ret && thenBasicBlock->getTerminator()->getOpcode() != llvm::Instruction::Br)) {
+		sBuilder->CreateBr(mergeBasicBlock);
+	}
+	else {
+		thenVal = nullptr;
+	}
 	thenBasicBlock = sBuilder->GetInsertBlock();
 
 	llvm::Value* elseVal = nullptr;
@@ -183,24 +195,40 @@ llvm::Value* IfExpressionNode::Codegen() {
 
 	parentFunc->getBasicBlockList().push_back(mergeBasicBlock);
 	sBuilder->SetInsertPoint(mergeBasicBlock);
-	llvm::PHINode* phi = sBuilder->CreatePHI(thenVal->getType(), 2, "iftmp");
-	phi->addIncoming(thenVal, thenBasicBlock);
-	if (elseVal) {
-		phi->addIncoming(elseVal, elseBasicBlock);
+	if (thenVal && elseVal) {
+		llvm::PHINode* phi = sBuilder->CreatePHI(thenVal->getType(), 2, "iftmp");
+		phi->addIncoming(thenVal, thenBasicBlock);
+		if (elseVal) {
+			phi->addIncoming(elseVal, elseBasicBlock);
+		}
+		return phi;
 	}
-
-	return phi;
+	else if (thenVal) {
+		return thenVal;
+	}
+	else if (elseVal) {
+		return elseVal;
+	}
+	return nullptr;
 }
 
 llvm::Value* LoopExpressionNode::Codegen() {
 	llvm::Function* func = sBuilder->GetInsertBlock()->getParent();
 	llvm::BasicBlock* loopBlock = llvm::BasicBlock::Create(*sContext, "loop", func);
+	llvm::BasicBlock* loopEndBlock = llvm::BasicBlock::Create(*sContext, "loop_end", func);
+	// TODO: handle nested loops? :o
+	sCurrentLoopBlock = loopBlock;
+	sCurrentLoopEndBlock = loopEndBlock;
 
 	sBuilder->CreateBr(loopBlock);
 	sBuilder->SetInsertPoint(loopBlock);
 
 	llvm::Value* blockExpressionValue = mBlockNode->Codegen();
 	sBuilder->CreateBr(loopBlock);
+
+	sBuilder->SetInsertPoint(loopEndBlock);
+	sCurrentLoopBlock = nullptr;
+	sCurrentLoopEndBlock = nullptr;
 
 	// TODO: This should return last expression of the loop?
 	//  - Also need to handle break and return statements?
@@ -210,7 +238,8 @@ llvm::Value* LoopExpressionNode::Codegen() {
 }
 
 llvm::Value* BinaryOperatorNode::Codegen() {
-	llvm::Value* left = mLeft->Codegen();
+	// deal with equals operator later, that needs to get memory location rather than value
+	llvm::Value* left = mOperator == Token::EQUALS ? nullptr : mLeft->Codegen();
 	llvm::Value* right = mRight->Codegen();
 	if (!left || !right) {
 		// TODO: Error
@@ -252,6 +281,15 @@ llvm::Value* BinaryOperatorNode::Codegen() {
 		}
 	} break;
 	case Token::ASSIGNMENT: {
+		if (IdentifierNode * identifier = dynamic_cast<IdentifierNode*>(mLeft)) {
+			left = sNamedValues[identifier->mIdentifier].mAlloca;
+		}
+		else if (dynamic_cast<ArrayAccessNode*>(mLeft)) {
+			left = mLeft->Codegen();
+		}
+		else {
+			// TODO: ERROR!!!
+		}
 		// TODO: This should be differentiated in grammar so lvalue vs rvalue identifier nodes are handled differently
 		return sBuilder->CreateStore(right, left);
 	} break;
@@ -356,6 +394,31 @@ llvm::Value* FunctionCallNode::Codegen() {
 	// TODO: Validate func name/arguments
 	llvm::CallInst* call = sBuilder->CreateCall(func, arguments);
 	return call;
+}
+
+llvm::Value* ReturnExpressionNode::Codegen() {
+	llvm::Value* expression = mExpression ? mExpression->Codegen() : nullptr;
+	return sBuilder->CreateRet(expression);
+}
+
+llvm::Value* BreakExpressionNode::Codegen() {
+	if (sCurrentLoopEndBlock) {
+		llvm::BranchInst* breakExpr = sBuilder->CreateBr(sCurrentLoopEndBlock);
+		// sBuilder->SetInsertPoint(sCurrentLoopEndBlock);
+		return breakExpr;
+	}
+	// TODO: ERROR
+	return nullptr;
+}
+
+llvm::Value* ContinueExpressionNode::Codegen() {
+	if (sCurrentLoopBlock) {
+		llvm::BranchInst* breakExpr = sBuilder->CreateBr(sCurrentLoopBlock);
+		// sBuilder->SetInsertPoint(sCurrentLoopBlock);
+		return breakExpr;
+	}
+	// TODO: ERROR
+	return nullptr;
 }
 
 llvm::Value* ArrayAccessNode::Codegen() {

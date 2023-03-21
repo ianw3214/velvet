@@ -28,6 +28,9 @@
   - binop_expr
   - loop_expr
   - fn_call_expr
+  - return_expr
+  - break_expr
+  - continue_expr
 - block_expr
   - { expr_list }
 - if_expr
@@ -42,6 +45,13 @@
   - assignment
 - loop_expr
   - loop block_expr
+- return_expr
+  - 'return'
+  - 'return' expr
+- break_expr
+  - 'break'
+- continue_expr
+  - 'continue'
 - type
   - 'i32'
   - 'f32'
@@ -100,11 +110,13 @@
 - expr
   - fn_decl_expr
   - var_decl_expr
-  - assign_expr
   - block_expr
   - if_expr
   - loop_expr
   - fn_call_expr
+  - return_expr
+  - break_expr
+  - continue_expr
 - block_expr
   - { expr_list }
 - if_expr
@@ -121,6 +133,13 @@
   - assignment
 - loop_expr
   - loop block_expr
+- return_expr
+  - 'return'
+  - 'return' expr
+- break_expr
+  - 'break'
+- continue_expr
+  - 'continue'
 - type
   - 'i32'
   - 'f32'

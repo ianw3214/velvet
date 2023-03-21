@@ -17,6 +17,9 @@ enum class Token {
     THEN,
     ELSE,
     LOOP,
+    RETURN,
+    BREAK,
+    CONTINUE,
 
     // identifiers/literals
     ID,

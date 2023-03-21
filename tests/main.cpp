@@ -76,6 +76,14 @@ TEST_CASE("Expression with space in array access lexes correctly", "[lexer]") {
 	_verifyInputStringGeneratesTokens("a [ test ]", { Token::ID, Token::LEFT_SQUARE_BRACKET, Token::ID, Token::RIGHT_SQUARE_BRACKET });
 }
 
+TEST_CASE("Return keyword lexes correctly", "[lexer]") {
+	_verifyInputStringGeneratesTokens("return identifier;", { Token::RETURN, Token::ID, Token::EXPRESSION_END });
+}
+
+TEST_CASE("Break keyword lexes correctly", "[lexer]") {
+	_verifyInputStringGeneratesTokens("something; break;", { Token::ID, Token::EXPRESSION_END, Token::BREAK, Token::EXPRESSION_END });
+}
+
 TEST_CASE("GetLexeme lexes correctly after peeking ahead by 1", "[lexer]") {
 	Lexer::LoadInputString("a");
 	Lexeme peekLexeme = Lexer::peekLexeme();
