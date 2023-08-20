@@ -1,7 +1,0 @@
-add_subdirectory(lexer)
-add_subdirectory(symbol)
-add_subdirectory(parser)
-add_subdirectory(AST)
-
-target_sources(Velvet PRIVATE common.h)
-target_sources(VelvetMain PRIVATE main.cpp)

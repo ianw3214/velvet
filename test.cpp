@@ -1,9 +1,9 @@
 #include <iostream>
 
 extern "C" {
-    int sum(int, int);
+    float func(float a, float b);
 }
 
 int main() {
-    std::cout << "sum of 3 and 4: " << sum(3, 4) << std::endl;
+    std::cout << "func value: " << func(10, 50) << std::endl;
 }

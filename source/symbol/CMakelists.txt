@@ -1,1 +1,0 @@
-target_sources(Velvet PRIVATE symboltable.h symboltable.cpp)

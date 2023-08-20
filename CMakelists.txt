@@ -1,29 +1,21 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.22)
 project(Velvet)
 
 find_package(LLVM REQUIRED CONFIG)
-find_package(Catch2 CONFIG REQUIRED)
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
-include_directories(${LLVM_INCLUDE_DIRS})
+include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
 separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
 add_definitions(${LLVM_DEFINITIONS_LIST})
 
-add_library(Velvet)
-target_include_directories(Velvet PRIVATE source)
-
-add_executable(VelvetMain)
-add_subdirectory(source)
-target_link_libraries(VelvetMain Velvet)
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT VelvetMain)
-set_target_properties(VelvetMain PROPERTIES VS_DEBUGGER_COMMAND_ARGUMENTS "test.vv")
-
-add_executable(VelvetTests)
-target_include_directories(VelvetTests PRIVATE source)
-add_subdirectory(tests)
-target_link_libraries(VelvetTests Velvet)
+add_executable(Velvet)
+add_subdirectory(src)
+target_include_directories(Velvet PRIVATE src)
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Velvet)
+set_target_properties(Velvet PROPERTIES VS_DEBUGGER_COMMAND_ARGUMENTS "test.vv")
+target_compile_features(Velvet PRIVATE cxx_std_17)
 
 # Find the libraries that correspond to the LLVM components
 # that we wish to use
@@ -31,6 +23,3 @@ llvm_map_components_to_libnames(llvm_libs support core irreader target x86codege
 
 # Link against LLVM libraries
 target_link_libraries(Velvet ${llvm_libs})
-
-target_link_libraries(VelvetTests ${llvm_libs})
-target_link_libraries(VelvetTests Catch2::Catch2)

@@ -11,7 +11,6 @@
 
 > git clone https://github.com/llvm/llvm-project.git llvm
 
-
 3. Use CMake to setup a build for llvm
 
 > mkdir build  
@@ -19,7 +18,6 @@
 > cmake -DLLVM_ENABLE_PROJECTS=clang;lld -DCMAKE_INSTALL_PREFIX=C:\llvm ..\llvm
 
 **NOTE**: Make sure you set the **CMAKE_INSTALL_PREFIX** to something without spaces otherwise bad things will happen
-
 
 4. build llvm
 
@@ -32,12 +30,6 @@
 6. test your installation by opening up a new command line and typing in:
 
 > clang-cl help
-
-# Catch2 setup
-
-Using vcpkg, make sure to install the 64 bit version if necessary
-
-> vcpkg install Catch2:x64-windows
 
 # Cmake build
 
