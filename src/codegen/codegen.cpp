@@ -23,8 +23,8 @@ CodeGenerator::CodeGenerator(ErrorHandler& handler)
     , mModule(std::make_unique<llvm::Module>("velvet", *mContext))
     , mBuilder(std::make_unique<llvm::IRBuilder<>>(*mContext)) 
     , mErrorHandler(handler)
-    , mNamedValues() 
     , mNamedVariables()
+    , mFunctions()
 {
     if (!mContext) {
         mErrorHandler.logError("Could not initialize LLVM context");
@@ -38,6 +38,15 @@ CodeGenerator::CodeGenerator(ErrorHandler& handler)
         mErrorHandler.logError("Could not initialize LLVM builder");
         return;
     }
+
+    setupDefaultFunctions();
+}
+
+void CodeGenerator::setupDefaultFunctions() {
+    llvm::FunctionType* printfType = llvm::FunctionType::get(
+        llvm::IntegerType::getInt32Ty(*mContext),
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*mContext), 0));
+    mFunctions["printf"] = llvm::Function::Create(printfType, llvm::Function::ExternalLinkage, "printf", *mModule);
 }
 
 // can the passed in expression owner be const ref?
@@ -68,6 +77,10 @@ llvm::Value* CodeGenerator::generateExpressionCode(ExpressionNodeOwner& expressi
 }
 
 llvm::Function* CodeGenerator::generateFunctionCode(FunctionDefinitionNode& functionDefinition) {
+    if (mFunctions.find(functionDefinition.mName.mIdentifier) != mFunctions.end()) {
+        mErrorHandler.logError("Function already exists");
+        return nullptr;
+    }
     std::vector<llvm::Type*> argumentTypes = std::vector<llvm::Type*>();
     argumentTypes.reserve(functionDefinition.mArguments.size());
     for (auto& argument : functionDefinition.mArguments) {
@@ -89,15 +102,18 @@ llvm::Function* CodeGenerator::generateFunctionCode(FunctionDefinitionNode& func
         mErrorHandler.logError("Could not generate function");
         return nullptr;
     }
-    size_t index = 0;
-    for (auto& argument : func->args()) {
-        const std::string& argName = functionDefinition.mArguments[index].first;
-        argument.setName(argName);
-        mNamedValues[argName] = &argument;
-        index++;
-    }
     llvm::BasicBlock* basicBlock = llvm::BasicBlock::Create(*mContext, "entry", func);
     mBuilder->SetInsertPoint(basicBlock);
+    size_t index = 0;
+    for (auto& argument : func->args()) {
+        const auto& argumentDefinition = functionDefinition.mArguments[index]; 
+        argument.setName(argumentDefinition.first);
+        llvm::Type* type = _getRawLLVMType(argumentDefinition.second);
+        llvm::AllocaInst* alloca = mBuilder->CreateAlloca(type, nullptr, argumentDefinition.first);
+        mBuilder->CreateStore(&argument, alloca);
+        mNamedVariables[argumentDefinition.first] = alloca;
+        index++;
+    }
     llvm::Value* returnValue = generateExpressionCode(functionDefinition.mExpression);
     if (!returnValue) {
         // Maybe this is not an error? fix this if it turns out to be the case
@@ -106,6 +122,7 @@ llvm::Function* CodeGenerator::generateFunctionCode(FunctionDefinitionNode& func
     }
     mBuilder->CreateRet(returnValue);
     llvm::verifyFunction(*func);
+    mFunctions[functionDefinition.mName.mIdentifier] = func;
     return func;
 }
 
@@ -115,31 +132,64 @@ std::unique_ptr<llvm::Module>& CodeGenerator::getModule() {
 
 llvm::Value* CodeGenerator::_generateVariableAccess(std::unique_ptr<VariableAccessNode>& varAccess) {
     const std::string& varName = varAccess->mName.mIdentifier;
-    {   // values
-        // TODO: Convert parameter values to alloca so it can be array typed as well
-        auto it = mNamedValues.find(varName);
-        if (it != mNamedValues.end()) {
-            return it->second;
+    auto it = mNamedVariables.find(varName);
+    if (it != mNamedVariables.end()) {
+        llvm::AllocaInst* alloca = it->second;
+        if (varAccess->mArrayIndex.has_value()) {
+            llvm::Type* type = alloca->getAllocatedType();
+            llvm::Type* elementType = type->getArrayElementType();
+            llvm::ConstantInt* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*mContext), 0);
+            ExpressionNodeOwner& expr = varAccess->mArrayIndex.value();
+            llvm::Value* indexExpr = generateExpressionCode(expr);
+            llvm::Value* indices[] = { zero, indexExpr };
+            llvm::Value* elementPtr = mBuilder->CreateGEP(type, alloca, indices);
+            // TODO: Handle if var access is used as lvalue
+            return mBuilder->CreateLoad(elementType, elementPtr, varName.c_str());
+        }
+        else {
+            return mBuilder->CreateLoad(alloca->getAllocatedType(), alloca, varName);
         }
     }
-    {   // variables
-        auto it = mNamedVariables.find(varName);
-        if (it != mNamedVariables.end()) {
-            llvm::AllocaInst* alloca = it->second;
-            if (varAccess->mArrayIndex.has_value()) {
-                llvm::Type* type = alloca->getAllocatedType();
-                llvm::Type* elementType = type->getArrayElementType();
-                llvm::ConstantInt* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*mContext), 0);
-                ExpressionNodeOwner& expr = varAccess->mArrayIndex.value();
-                llvm::Value* indexExpr = generateExpressionCode(expr);
-                llvm::Value* indices[] = { zero, indexExpr };
-                llvm::Value* elementPtr = mBuilder->CreateGEP(type, alloca, indices);
-                // TODO: Handle if var access is used as lvalue
-                return mBuilder->CreateLoad(elementType, elementPtr, varName.c_str());
+    auto funcIt = mFunctions.find(varName);
+    if (funcIt != mFunctions.end()) {
+        // Special cases
+        if (funcIt->first == "printf") {
+            if (varAccess->mCallArgs.has_value()) {
+                std::vector<ExpressionNodeOwner>& argExpressions = varAccess->mCallArgs.value();
+                if (argExpressions.empty()) {
+                    mErrorHandler.logError("Print statement should always have an argument");
+                    return nullptr;
+                }
+                llvm::Value* formatString = mBuilder->CreateGlobalStringPtr("%d\n", "formatString");
+                llvm::Value* value = generateExpressionCode(argExpressions.front());
+                llvm::Value* printfArgs[] = { formatString, value };
+                return mBuilder->CreateCall(mFunctions["printf"], printfArgs, "calltmp");
             }
             else {
-                return mBuilder->CreateLoad(alloca->getAllocatedType(), alloca, varName);
+                mErrorHandler.logError("Print statement should always have an argument");
+                return nullptr;
             }
+        }
+        if (varAccess->mCallArgs.has_value()) {
+            std::vector<ExpressionNodeOwner>& argExpressions = varAccess->mCallArgs.value();
+            auto it = mFunctions.find(varName);
+            if (it == mFunctions.end()) {
+                mErrorHandler.logError("Could not find function");
+                return nullptr;
+            }
+            if (it->second->arg_size() != argExpressions.size()) {
+                mErrorHandler.logError("Mismatched number of function arguments");
+                return nullptr;
+            }
+            std::vector<llvm::Value*> values;
+            for (ExpressionNodeOwner& expr : argExpressions) {
+                values.emplace_back(generateExpressionCode(expr));
+            }
+            return mBuilder->CreateCall(it->second, values, "calltmp");
+        }
+        else {
+            mErrorHandler.logError("Expected argument list after function call");
+            return nullptr;
         }
     }
     mErrorHandler.logError("Could not find existing symbol for identifier");
@@ -343,29 +393,20 @@ llvm::Value* CodeGenerator::_generateAssignment(std::unique_ptr<AssignmentNode>&
     const std::string& varName = varAccess.mName.mIdentifier;
     llvm::Value* memLocation = nullptr;
     // shares a lot of code with VariableAccess, perhaps can refactor somehow
-    {   // values
-        // TODO: Convert parameter values to alloca so it can be array typed as well
-        auto it = mNamedValues.find(varName);
-        if (it != mNamedValues.end()) {
-            memLocation = it->second;
+    auto it = mNamedVariables.find(varName);
+    if (it != mNamedVariables.end()) {
+        llvm::AllocaInst* alloca = it->second;
+        if (varAccess.mArrayIndex.has_value()) {
+            llvm::Type* type = alloca->getAllocatedType();
+            llvm::Type* elementType = type->getArrayElementType();
+            llvm::ConstantInt* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*mContext), 0);
+            ExpressionNodeOwner& expr = varAccess.mArrayIndex.value();
+            llvm::Value* indexExpr = generateExpressionCode(expr);
+            llvm::Value* indices[] = { zero, indexExpr };
+            memLocation = mBuilder->CreateGEP(type, alloca, indices);
         }
-    }
-    {   // variables
-        auto it = mNamedVariables.find(varName);
-        if (it != mNamedVariables.end()) {
-            llvm::AllocaInst* alloca = it->second;
-            if (varAccess.mArrayIndex.has_value()) {
-                llvm::Type* type = alloca->getAllocatedType();
-                llvm::Type* elementType = type->getArrayElementType();
-                llvm::ConstantInt* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*mContext), 0);
-                ExpressionNodeOwner& expr = varAccess.mArrayIndex.value();
-                llvm::Value* indexExpr = generateExpressionCode(expr);
-                llvm::Value* indices[] = { zero, indexExpr };
-                memLocation = mBuilder->CreateGEP(type, alloca, indices);
-            }
-            else {
-                memLocation = mBuilder->CreateLoad(alloca->getType(), alloca, varName);
-            }
+        else {
+            memLocation = mBuilder->CreateLoad(alloca->getType(), alloca, varName);
         }
     }
     if (!memLocation) {

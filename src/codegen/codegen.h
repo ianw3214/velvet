@@ -22,13 +22,15 @@ class CodeGenerator {
 public:
     CodeGenerator(ErrorHandler& handler);
 
+    void setupDefaultFunctions();
+
     llvm::Value* generateExpressionCode(ExpressionNodeOwner& expressionNode);
     llvm::Function* generateFunctionCode(FunctionDefinitionNode& functionDefinition);
 
     std::unique_ptr<llvm::Module>& getModule();
 private:
-    std::unordered_map<std::string, llvm::Value*> mNamedValues;
     std::unordered_map<std::string, llvm::AllocaInst*> mNamedVariables;
+    std::unordered_map<std::string, llvm::Function*> mFunctions;
 
     llvm::Value* _generateVariableAccess(std::unique_ptr<VariableAccessNode>& varAccess);
     llvm::Value* _generateNumber(std::unique_ptr<NumberNode>& number);

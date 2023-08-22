@@ -19,6 +19,13 @@ namespace {
 
 Parser::Parser(std::string input, ErrorHandler& handler) : mLexer(input), mErrorHandler(handler) {}
 
+std::vector<FunctionDefinitionNode>& Parser::parseAll() {
+    while(mLexer.getCurrToken() == Token::FUNC_DEF) {
+        mTopLevelFunctions.emplace_back(std::move(parseFunctionDefinition()));
+    }
+    return mTopLevelFunctions;
+}
+
 /// ExpressionNode
 ///     ::= Primary
 ///     ::= BinaryOperation
@@ -86,15 +93,27 @@ ExpressionNodeOwner Parser::parsePrimary() {
 /// VariableAccessNode ::= IdentifierNode ('[' ExpressionNode ']')?
 VariableAccessNode Parser::parseVariableAccess() {
     IdentifierNode identifier = parseIdentifier();
+    // TODO: Need to figure out how to handle chained brackets (e.g. arrayVar[2][3][4])
     if (_checkAndConsumeToken(Token::LEFT_SQUARE_BRACKET)) {
         ExpressionNodeOwner expression = parseExpression();
         if (!_checkAndConsumeToken(Token::RIGHT_SQUARE_BRACKET)) {
             mErrorHandler.logError("Expected ']' at the end of array access");
-            return VariableAccessNode{ identifier, std::move(expression) };
+            return VariableAccessNode{ identifier, std::move(expression), std::nullopt };
         }
-        return VariableAccessNode{ identifier, std::move(expression) };
+        return VariableAccessNode{ identifier, std::move(expression), std::nullopt };
     }
-    return VariableAccessNode{ identifier, std::nullopt };
+    if (_checkAndConsumeToken(Token::LEFT_PARENTHESIS)) {
+        std::vector<ExpressionNodeOwner> argExpressions;
+        while(!_checkAndConsumeToken(Token::RIGHT_PARENTHESIS)) {
+            argExpressions.emplace_back(parseExpression());
+            if (!_checkAndConsumeToken(Token::COMMA) && mLexer.getCurrToken() != Token::RIGHT_PARENTHESIS) {
+                mErrorHandler.logError("Expected ',' between argument expressions for function call parameter");
+                return VariableAccessNode{ identifier, std::nullopt, std::nullopt };
+            }
+        }
+        return VariableAccessNode{ identifier, std::nullopt, std::move(argExpressions) };
+    }
+    return VariableAccessNode{ identifier, std::nullopt, std::nullopt };
 }
 
 /// AssignmentNode ::= MemoryAccessNode = ExpressionNode

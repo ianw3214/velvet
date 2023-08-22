@@ -36,6 +36,7 @@ using ExpressionNodeOwner = std::variant<
 struct VariableAccessNode {
     IdentifierNode mName;
     std::optional<ExpressionNodeOwner> mArrayIndex;
+    std::optional<std::vector<ExpressionNodeOwner>> mCallArgs;
 };
 
 struct NumberNode {

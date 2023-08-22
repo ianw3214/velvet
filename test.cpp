@@ -5,5 +5,5 @@ extern "C" {
 }
 
 int main() {
-    std::cout << "func value: " << func(10, 50) << std::endl;
+    std::cout << "func value: " << func(10.f, 50.f) << std::endl;
 }

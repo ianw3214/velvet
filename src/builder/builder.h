@@ -11,5 +11,5 @@ class TargetBuilder {
 public:
     TargetBuilder();
 
-    bool buildModule(std::unique_ptr<llvm::Module>& module);
+    bool buildModule(std::unique_ptr<llvm::Module>& module, const std::string& fileName);
 };

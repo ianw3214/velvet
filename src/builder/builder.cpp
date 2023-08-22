@@ -37,11 +37,10 @@ TargetBuilder::TargetBuilder() {
 
 }
 
-bool TargetBuilder::buildModule(std::unique_ptr<llvm::Module>& module) {
+bool TargetBuilder::buildModule(std::unique_ptr<llvm::Module>& module, const std::string& fileName) {
     module->setDataLayout(mTargetMachine->createDataLayout());
     module->setTargetTriple(mTargetTriple);
 
-    std::string fileName = "output.o";
     std::error_code errorCode;
     llvm::raw_fd_ostream destination(fileName, errorCode, llvm::sys::fs::OF_None);
     if (errorCode) {
