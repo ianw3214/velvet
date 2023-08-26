@@ -52,7 +52,7 @@ void Composer::buildAllFiles() {
     passBuilder.registerModuleAnalyses(moduleAnalysis);
     passBuilder.crossRegisterProxies(loopAnalysis, funcAnalysis, CGSCCAnalysis, moduleAnalysis);
     // TODO: Optimization level should be passed in
-    llvm::ModulePassManager modulePassManager = passBuilder.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O2);
+    llvm::ModulePassManager modulePassManager = passBuilder.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O0);
 
     for (const std::string& filename : mInputFiles) {
         std::ifstream inputFile(filename);

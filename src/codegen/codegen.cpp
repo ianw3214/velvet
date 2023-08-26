@@ -25,6 +25,7 @@ CodeGenerator::CodeGenerator(ErrorHandler& handler)
     , mErrorHandler(handler)
     , mNamedVariables()
     , mFunctions()
+    , mLoopStack() 
 {
     if (!mContext) {
         mErrorHandler.logError("Could not initialize LLVM context");
@@ -60,6 +61,10 @@ llvm::Value* CodeGenerator::generateExpressionCode(ExpressionNodeOwner& expressi
     if (auto scope = std::get_if<std::unique_ptr<ScopeNode>>(&expressionNode)) {
         return _generateScope(*scope); 
     }
+    if (auto arrayValue = std::get_if<std::unique_ptr<ArrayValueNode>>(&expressionNode)) {
+        // This is actually not implemented, needs special case to codegen
+        return nullptr;
+    }
     if (auto conditional = std::get_if<std::unique_ptr<ConditionalNode>>(&expressionNode)) {
         return _generateConditional(*conditional);
     }
@@ -71,6 +76,12 @@ llvm::Value* CodeGenerator::generateExpressionCode(ExpressionNodeOwner& expressi
     }
     if (auto assign = std::get_if<std::unique_ptr<AssignmentNode>>(&expressionNode)) {
         return _generateAssignment(*assign);
+    }
+    if (auto loop = std::get_if<std::unique_ptr<LoopNode>>(&expressionNode)) {
+        return _generateLoop(*loop);
+    }
+    if (auto br = std::get_if<std::unique_ptr<BreakNode>>(&expressionNode)) {
+        return _generateBreak(*br);
     }
     mErrorHandler.logError("No valid expression was generated");
     return nullptr;
@@ -212,8 +223,27 @@ llvm::Value* CodeGenerator::_generateScope(std::unique_ptr<ScopeNode>& scope) {
     for (ExpressionNodeOwner& expression : scope->mExpressionList) {
         last = generateExpressionCode(expression);
     }
-    // Need to deal with return statements and such...
+    // TODO: Need to deal with return statements and such...
     return last;   
+}
+
+llvm::Value* CodeGenerator::_generateArrayValue(std::unique_ptr<ArrayValueNode>& arrayValue, llvm::AllocaInst* alloca) {
+    int index = 0;
+    for (ExpressionNodeOwner& expr : arrayValue->mExpressionList) {
+        // TODO: This pattern seems to be used a lot, might want to refactor it out
+        llvm::Type* type = alloca->getAllocatedType();
+        llvm::Type* elementType = type->getArrayElementType();
+        llvm::ConstantInt* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*mContext), 0);
+        llvm::Value* indexExpr = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*mContext), index);
+        llvm::Value* indices[] = { zero, indexExpr };
+        llvm::Value* memLocation = mBuilder->CreateGEP(type, alloca, indices);
+
+        llvm::Value* valueExpr = generateExpressionCode(expr);
+        mBuilder->CreateStore(valueExpr, memLocation);
+        index++;
+    }
+    // we don't actually need to return a value since we should already be assigning to the alloca
+    return nullptr;
 }
 
 llvm::Value* CodeGenerator::_generateConditional(std::unique_ptr<ConditionalNode>& conditional) {
@@ -232,35 +262,33 @@ llvm::Value* CodeGenerator::_generateConditional(std::unique_ptr<ConditionalNode
         mBuilder->CreateCondBr(conditionValue, thenBlock, elseBlock);
         mBuilder->SetInsertPoint(thenBlock);
         llvm::Value* thenValue = generateExpressionCode(conditional->mThen);
-        if (!thenValue) {
-            mErrorHandler.logError("No then value was generated for conditional expression");
-            return nullptr;
-        }
         mBuilder->CreateBr(mergeBlock);
         mBuilder->SetInsertPoint(elseBlock);
         llvm::Value* elseValue = generateExpressionCode(conditional->mElse.value());
-        if (!elseValue) {
-            mErrorHandler.logError("No else value was generated for conditional expression");
-            return nullptr;
-        }
         mBuilder->CreateBr(mergeBlock);
         // TODO: Handle then/else basic blocks changing the actual basic block
         //  - need to call builder::getInsertBlock to use the newest insert block as then/else
         mBuilder->SetInsertPoint(mergeBlock);
-        llvm::PHINode* phi = mBuilder->CreatePHI(llvm::Type::getDoubleTy(*mContext), 2, "condExprVal");
-        phi->addIncoming(thenValue, thenBlock);
-        phi->addIncoming(elseValue, elseBlock);
-        return phi;
+        // if statements don't necessarily return a value, only do so if both then/else have return values
+        if (thenValue && elseValue) {
+            llvm::PHINode* phi = mBuilder->CreatePHI(llvm::Type::getDoubleTy(*mContext), 2, "condExprVal");
+            phi->addIncoming(thenValue, thenBlock);
+            phi->addIncoming(elseValue, elseBlock);
+            return phi;
+        }
+        else {
+            return nullptr;
+        }
     }
     else {
         mBuilder->CreateCondBr(conditionValue, thenBlock, mergeBlock);
         mBuilder->SetInsertPoint(thenBlock);
-        llvm::Value* thenValue = generateExpressionCode(conditional->mThen);
-        if (!thenValue) {
-            mErrorHandler.logError("No then value was generated for conditional expression");
-            return nullptr;
+        llvm::Value* _thenValue = generateExpressionCode(conditional->mThen);
+        // If then block is a branch/return we want to not generate this
+        llvm::Instruction* last = thenBlock->getTerminator();
+        if (last && last->getOpcode() != llvm::Instruction::Br) {
+            mBuilder->CreateBr(mergeBlock);
         }
-        mBuilder->CreateBr(mergeBlock);
         mBuilder->SetInsertPoint(mergeBlock);
         return nullptr;
     }
@@ -382,8 +410,15 @@ llvm::Value* CodeGenerator::_generateVariableDefinition(std::unique_ptr<Variable
     llvm::AllocaInst* alloca = mBuilder->CreateAlloca(varType, nullptr, varName);
     mNamedVariables[varName] = alloca;
     if (varDef->mInitialValue.has_value()) {
-        llvm::Value* value = generateExpressionCode(varDef->mInitialValue.value());
-        mBuilder->CreateStore(value, alloca);
+        ExpressionNodeOwner& expr = varDef->mInitialValue.value();
+        if (auto arrayValue = std::get_if<std::unique_ptr<ArrayValueNode>>(&expr)) {
+            // I think the alloca needs to be created in here so it can handle alloca size as well
+            _generateArrayValue(*arrayValue, alloca);
+        }
+        else {
+            llvm::Value* value = generateExpressionCode(expr);
+            mBuilder->CreateStore(value, alloca);
+        }
     }
     return nullptr;
 }
@@ -406,7 +441,7 @@ llvm::Value* CodeGenerator::_generateAssignment(std::unique_ptr<AssignmentNode>&
             memLocation = mBuilder->CreateGEP(type, alloca, indices);
         }
         else {
-            memLocation = mBuilder->CreateLoad(alloca->getType(), alloca, varName);
+            memLocation = alloca;
         }
     }
     if (!memLocation) {
@@ -415,5 +450,32 @@ llvm::Value* CodeGenerator::_generateAssignment(std::unique_ptr<AssignmentNode>&
     }
     llvm::Value* value = generateExpressionCode(assignment->mValue);
     mBuilder->CreateStore(value, memLocation);
+    return nullptr;
+}
+
+llvm::Value* CodeGenerator::_generateLoop(std::unique_ptr<LoopNode>& loop) {
+    llvm::Function* parentFunc = mBuilder->GetInsertBlock()->getParent();
+    llvm::BasicBlock* loopBlock = llvm::BasicBlock::Create(*mContext, "loop", parentFunc);
+    llvm::BasicBlock* afterBlock = llvm::BasicBlock::Create(*mContext, "after");
+    mBuilder->CreateBr(loopBlock);
+    mBuilder->SetInsertPoint(loopBlock);
+
+    mLoopStack.emplace_back(loopBlock, afterBlock);
+    for (ExpressionNodeOwner& expression : loop->mExpressionList) {
+        generateExpressionCode(expression);
+    }
+    mBuilder->CreateBr(loopBlock);
+    afterBlock->insertInto(parentFunc);
+    mBuilder->SetInsertPoint(afterBlock);
+    mLoopStack.pop_back();
+    return nullptr;
+}
+
+llvm::Value* CodeGenerator::_generateBreak(std::unique_ptr<BreakNode>& br) {
+    if (mLoopStack.empty()) {
+        mErrorHandler.logError("Cannot break if there is no loop");
+        return nullptr;
+    }
+    mBuilder->CreateBr(mLoopStack.back().second);
     return nullptr;
 }

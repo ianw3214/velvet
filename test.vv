@@ -1,12 +1,13 @@
-def func(a : i32, b : i32) @ i32 {
-    var d : [i32; 5];
-    d[1] = 10;
-    a - d[1]
+def func(a : i32) @ i32 {
+    loop {
+        printf(a);
+        if a >= 5 then break;
+        a = a + 1;
+    };
+    a
 }
 
 def main() @ i32 {
-    printf(func(100, 100));
-    printf(func(10, 10));
-    printf(func(5, 5));
+    printf(func(0));
     0
 }

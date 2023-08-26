@@ -34,6 +34,8 @@ enum class Token {
     IF,
     THEN,
     ELSE,
+    LOOP,
+    BREAK,
 
     TYPE_I32,
     TYPE_F32,

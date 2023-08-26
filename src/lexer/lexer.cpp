@@ -32,6 +32,8 @@ namespace {
         { "if", Token::IF },
         { "then", Token::THEN },
         { "else", Token::ELSE },
+        { "loop", Token::LOOP },
+        { "break", Token::BREAK },
         // types
         { "i32", Token::TYPE_I32 },
         { "f32", Token::TYPE_F32 },

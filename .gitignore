@@ -9,3 +9,6 @@ build/
 
 *.o
 *.exe
+
+# Temp file
+scratch.txt

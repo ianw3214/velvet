@@ -2,6 +2,8 @@
 
 #include <memory>
 #include <unordered_map>
+#include <vector>
+#include <utility>
 
 #include "error/errorHandler.h"
 #include "parser/ast.h"
@@ -31,6 +33,7 @@ public:
 private:
     std::unordered_map<std::string, llvm::AllocaInst*> mNamedVariables;
     std::unordered_map<std::string, llvm::Function*> mFunctions;
+    std::vector<std::pair<llvm::BasicBlock*, llvm::BasicBlock*>> mLoopStack;
 
     llvm::Value* _generateVariableAccess(std::unique_ptr<VariableAccessNode>& varAccess);
     llvm::Value* _generateNumber(std::unique_ptr<NumberNode>& number);
@@ -40,4 +43,9 @@ private:
     
     llvm::Value* _generateVariableDefinition(std::unique_ptr<VariableDefinitionNode>& varDef);    
     llvm::Value* _generateAssignment(std::unique_ptr<AssignmentNode>& assignment);
+    llvm::Value* _generateLoop(std::unique_ptr<LoopNode>& loop);
+    llvm::Value* _generateBreak(std::unique_ptr<BreakNode>& br);
+
+    // special case codegen functions
+    llvm::Value* _generateArrayValue(std::unique_ptr<ArrayValueNode>& arrayValue, llvm::AllocaInst* alloca);
 };

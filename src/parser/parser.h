@@ -25,11 +25,14 @@ public:
     VariableAccessNode parseVariableAccess();
     NumberNode parseNumber();
     ScopeNode parseScope();
+    ArrayValueNode parseArrayValue();
     ConditionalNode parseConditional();
 
     BinaryOperationNode parseBinaryOperation(ExpressionNodeOwner left);
     VariableDefinitionNode parseVariableDefinition();
     AssignmentNode parseAssignment(VariableAccessNode&& variable);
+    LoopNode parseLoop();
+    BreakNode parseBreak();
 
     FunctionDefinitionNode parseFunctionDefinition();
 

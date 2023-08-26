@@ -60,6 +60,8 @@ IdentifierNode Parser::parseIdentifier() {
 ///   ::= ScopeNode
 ///   ::= ConditionalNode
 ///   ::= VariableDefinitionNode
+///   ::= LoopNode
+///   ::= BreakNode
 ExpressionNodeOwner Parser::parsePrimary() {
     switch(mLexer.getCurrToken()) {
         case Token::ID: {
@@ -77,11 +79,20 @@ ExpressionNodeOwner Parser::parsePrimary() {
         case Token::LEFT_BRACKET: {
             return std::make_unique<ScopeNode>(parseScope());
         } break;
+        case Token::LEFT_SQUARE_BRACKET: {
+            return std::make_unique<ArrayValueNode>(parseArrayValue());
+        } break;
         case Token::IF: {
             return std::make_unique<ConditionalNode>(parseConditional());
         } break;
         case Token::VAR_DEF: {
             return std::make_unique<VariableDefinitionNode>(parseVariableDefinition());
+        } break;
+        case Token::LOOP: {
+            return std::make_unique<LoopNode>(parseLoop());
+        } break;
+        case Token::BREAK: {
+            return std::make_unique<BreakNode>(parseBreak());
         } break;
         default: {
             mErrorHandler.logError("Unexpected token when parsing primary.");
@@ -127,6 +138,43 @@ AssignmentNode Parser::parseAssignment(VariableAccessNode&& variable) {
     return AssignmentNode{ std::move(memoryLocation), std::move(expression) };
 }
 
+/// LoopNode ::= 'loop' ScopeNode
+LoopNode Parser::parseLoop() {
+    if(!_checkAndConsumeToken(Token::LOOP)) {
+        mErrorHandler.logError("Expected 'loop' token at start of loop");
+        return LoopNode{};
+    }
+    if(!_checkAndConsumeToken(Token::LEFT_BRACKET)) {
+        mErrorHandler.logError("Expected left bracket at the start of loop expression");
+        return LoopNode{};
+    }
+    if (_checkAndConsumeToken(Token::RIGHT_BRACKET)) {
+        mErrorHandler.logError("Empty loop is not valid code");
+        return LoopNode{};
+    }
+    std::vector<ExpressionNodeOwner> expressions;
+    while(mLexer.getCurrToken() != Token::RIGHT_BRACKET) {
+        expressions.emplace_back(parseExpression());
+        if (!_checkAndConsumeToken(Token::SEMICOLON)) {
+            mErrorHandler.logError("Expressions in loop must end with a semicolon");
+            return LoopNode{};
+        }
+    }
+    if (!_checkAndConsumeToken(Token::RIGHT_BRACKET)) {
+        mErrorHandler.logError("Expected right bracket at the end of loop expression");
+    }
+    return LoopNode { std::move(expressions) };
+}
+
+/// BreakNode ::= 'break'
+BreakNode Parser::parseBreak() {
+    if (!_checkAndConsumeToken(Token::BREAK)) {
+        mErrorHandler.logError("Expected break token for break statement");
+        return BreakNode{};
+    }
+    return BreakNode{};
+}
+
 /// NumberNode ::= number
 NumberNode Parser::parseNumber() {
     if (mLexer.getCurrToken() == Token::NUM) {
@@ -150,7 +198,7 @@ NumberNode Parser::parseNumber() {
     }
 }
 
-/// ScopeNode ::= '{' ExpressionNode* '}'
+/// ScopeNode ::= '{' (ExpressionNode ';')* '}'
 ScopeNode Parser::parseScope() {
     if(!_checkAndConsumeToken(Token::LEFT_BRACKET)) {
         mErrorHandler.logError("Expected left bracket at the start of scope expression");
@@ -170,6 +218,28 @@ ScopeNode Parser::parseScope() {
         return ScopeNode{};
     }
     return ScopeNode { std::move(expressions) };
+}
+
+/// ArrayValueNode ::= '[' (ExpressionNode, ',')* ']'
+ArrayValueNode Parser::parseArrayValue() {
+    if (!_checkAndConsumeToken(Token::LEFT_SQUARE_BRACKET)) {
+        mErrorHandler.logError("Expected left square bracket at start of array value expression");
+        return ArrayValueNode{};
+    }
+    std::vector<ExpressionNodeOwner> expressions;
+    if (_checkAndConsumeToken(Token::RIGHT_SQUARE_BRACKET)) {
+        // Handle empty array value
+        return ArrayValueNode{};
+    }
+    expressions.emplace_back(parseExpression());
+    while(_checkAndConsumeToken(Token::COMMA)) {
+        expressions.emplace_back(std::move(parseExpression()));
+    }
+    if (!_checkAndConsumeToken(Token::RIGHT_SQUARE_BRACKET)) {
+        mErrorHandler.logError("Expected right square bracket at end of array value expression");
+        return ArrayValueNode{};
+    }
+    return ArrayValueNode{ std::move(expressions) };
 }
 
 /// ConditionalNode ::= 'if' ExpressionNode 'then' ExpressionNode ('else' ExpressionNode)?
@@ -243,9 +313,9 @@ VariableDefinitionNode Parser::parseVariableDefinition() {
         if (!_checkAndConsumeToken(Token::ASSIGN)) {
             return VariableDefinitionNode{ identifier, typeInfo, *arraySize, std::nullopt };
         }
-        // TODO: Implement default array values
-        mErrorHandler.logError("Array initialization not yet implemented");
-        return VariableDefinitionNode{ identifier, typeInfo, *arraySize, std::nullopt };
+        // TODO: Maybe check that this is an arrayValue node, or even parse it directly?
+        ExpressionNodeOwner initialArrayValue = parseExpression();
+        return VariableDefinitionNode{ identifier, typeInfo, *arraySize, std::move(initialArrayValue) };
     }
     else {
         Token typeInfo = mLexer.getCurrToken();
