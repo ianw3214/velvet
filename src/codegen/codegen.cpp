@@ -97,7 +97,12 @@ llvm::Function* CodeGenerator::generateFunctionCode(FunctionDefinitionNode& func
     for (auto& argument : functionDefinition.mArguments) {
         llvm::Type* type = _getRawLLVMType(argument.second.mRawType);
         if (argument.second.mArraySize >= 0) {
-            type = llvm::ArrayType::get(type, argument.second.mArraySize);
+            if (argument.second.mIsArrayDecay) {
+                type = llvm::PointerType::getUnqual(*mContext);
+            }
+            else {
+                type = llvm::ArrayType::get(type, argument.second.mArraySize);
+            }
         }
         if (!type) {
             mErrorHandler.logError("Invalid type handled in function argument");
@@ -124,11 +129,19 @@ llvm::Function* CodeGenerator::generateFunctionCode(FunctionDefinitionNode& func
         argument.setName(argumentDefinition.first);
         llvm::Type* type = _getRawLLVMType(argumentDefinition.second.mRawType);
         if (argumentDefinition.second.mArraySize >= 0) {
-            type = llvm::ArrayType::get(type, argumentDefinition.second.mArraySize);
+            if (argumentDefinition.second.mIsArrayDecay) {
+                type = llvm::PointerType::getUnqual(*mContext);
+            }
+            else {
+                type = llvm::ArrayType::get(type, argumentDefinition.second.mArraySize);
+            }
         }
         llvm::AllocaInst* alloca = mBuilder->CreateAlloca(type, nullptr, argumentDefinition.first);
         mBuilder->CreateStore(&argument, alloca);
-        mNamedVariables[argumentDefinition.first] = alloca;
+        mNamedVariables[argumentDefinition.first] = { 
+            alloca, 
+            argumentDefinition.second.mRawType,
+            argumentDefinition.second.mIsArrayDecay };
         index++;
     }
     llvm::Value* returnValue = generateExpressionCode(functionDefinition.mExpression);
@@ -151,20 +164,37 @@ llvm::Value* CodeGenerator::_generateVariableAccess(std::unique_ptr<VariableAcce
     const std::string& varName = varAccess->mName.mIdentifier;
     auto it = mNamedVariables.find(varName);
     if (it != mNamedVariables.end()) {
-        llvm::AllocaInst* alloca = it->second;
+        llvm::AllocaInst* alloca = it->second.mAlloca;
         if (varAccess->mArrayIndex.has_value()) {
-            llvm::Type* type = alloca->getAllocatedType();
-            llvm::Type* elementType = type->getArrayElementType();
-            llvm::ConstantInt* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*mContext), 0);
-            ExpressionNodeOwner& expr = varAccess->mArrayIndex.value();
-            llvm::Value* indexExpr = generateExpressionCode(expr);
-            llvm::Value* indices[] = { zero, indexExpr };
-            llvm::Value* elementPtr = mBuilder->CreateGEP(type, alloca, indices);
-            // TODO: Handle if var access is used as lvalue
-            return mBuilder->CreateLoad(elementType, elementPtr, varName.c_str());
+            if (it->second.mIsDecayedArray) {
+                llvm::Value* ptrAddr = mBuilder->CreateLoad(llvm::PointerType::getUnqual(*mContext), alloca, "ptrload");
+                llvm::Type* type = _getRawLLVMType(it->second.mRawType);
+                ExpressionNodeOwner& expr = varAccess->mArrayIndex.value();
+                llvm::Value* indexExpr = generateExpressionCode(expr);
+                llvm::Value* elementPtr = mBuilder->CreateGEP(type, ptrAddr, { indexExpr });
+                return mBuilder->CreateLoad(type, elementPtr, varName.c_str());
+            }
+            else {
+                llvm::Type* type = alloca->getAllocatedType();
+                llvm::Type* elementType = type->getArrayElementType();
+                llvm::ConstantInt* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*mContext), 0);
+                ExpressionNodeOwner& expr = varAccess->mArrayIndex.value();
+                llvm::Value* indexExpr = generateExpressionCode(expr);
+                llvm::Value* indices[] = { zero, indexExpr };
+                llvm::Value* elementPtr = mBuilder->CreateGEP(type, alloca, indices);
+                // TODO: Handle if var access is used as lvalue
+                return mBuilder->CreateLoad(elementType, elementPtr, varName.c_str());
+            }
         }
         else {
-            return mBuilder->CreateLoad(alloca->getAllocatedType(), alloca, varName);
+            if (varAccess->mArrayDecay) {
+                llvm::ConstantInt* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*mContext), 0);
+                llvm::Value* indices[] = { zero, zero };
+                return mBuilder->CreateGEP(alloca->getAllocatedType(), alloca, indices, "arrdecay");
+            }
+            else {
+                return mBuilder->CreateLoad(alloca->getAllocatedType(), alloca, varName);
+            }
         }
     }
     auto funcIt = mFunctions.find(varName);
@@ -421,7 +451,7 @@ llvm::Value* CodeGenerator::_generateVariableDefinition(std::unique_ptr<Variable
         varType = llvm::ArrayType::get(varType, varDef->mArraySize);
     }
     llvm::AllocaInst* alloca = mBuilder->CreateAlloca(varType, nullptr, varName);
-    mNamedVariables[varName] = alloca;
+    mNamedVariables[varName] = { alloca, varDef->mType, false };
     if (varDef->mInitialValue.has_value()) {
         ExpressionNodeOwner& expr = varDef->mInitialValue.value();
         if (auto arrayValue = std::get_if<std::unique_ptr<ArrayValueNode>>(&expr)) {
@@ -443,15 +473,24 @@ llvm::Value* CodeGenerator::_generateAssignment(std::unique_ptr<AssignmentNode>&
     // shares a lot of code with VariableAccess, perhaps can refactor somehow
     auto it = mNamedVariables.find(varName);
     if (it != mNamedVariables.end()) {
-        llvm::AllocaInst* alloca = it->second;
+        llvm::AllocaInst* alloca = it->second.mAlloca;
         if (varAccess.mArrayIndex.has_value()) {
-            llvm::Type* type = alloca->getAllocatedType();
-            llvm::Type* elementType = type->getArrayElementType();
-            llvm::ConstantInt* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*mContext), 0);
-            ExpressionNodeOwner& expr = varAccess.mArrayIndex.value();
-            llvm::Value* indexExpr = generateExpressionCode(expr);
-            llvm::Value* indices[] = { zero, indexExpr };
-            memLocation = mBuilder->CreateGEP(type, alloca, indices);
+            if (it->second.mIsDecayedArray) {
+                llvm::Value* ptrAddr = mBuilder->CreateLoad(llvm::PointerType::getUnqual(*mContext), alloca, "ptrload");
+                llvm::Type* type = _getRawLLVMType(it->second.mRawType);
+                ExpressionNodeOwner& expr = varAccess.mArrayIndex.value();
+                llvm::Value* indexExpr = generateExpressionCode(expr);
+                memLocation = mBuilder->CreateGEP(type, ptrAddr, { indexExpr });
+            }
+            else {
+                llvm::Type* type = alloca->getAllocatedType();
+                llvm::Type* elementType = type->getArrayElementType();
+                llvm::ConstantInt* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*mContext), 0);
+                ExpressionNodeOwner& expr = varAccess.mArrayIndex.value();
+                llvm::Value* indexExpr = generateExpressionCode(expr);
+                llvm::Value* indices[] = { zero, indexExpr };
+                memLocation = mBuilder->CreateGEP(type, alloca, indices);
+            }
         }
         else {
             memLocation = alloca;

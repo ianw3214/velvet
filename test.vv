@@ -2,7 +2,7 @@ def error(theta1 : f32, theta2 : f32, input : f32, output : f32) @ f32 {
     theta1 + theta2 * input - output
 }
 
-def print_first(arr : [f32; 10]) @ i32 {
+def print_first(arr : arrdecay [f32; 10]) @ i32 {
     printf(arr[1]);
     arr[1] = 40.0;
     0
@@ -16,7 +16,7 @@ def main() @ i32 {
     printf(error(theta1, theta2, x[1], y[3]));
     printf(theta1);
     printf(theta2);
-    print_first(y);
+    print_first(arrdecay y);
     printf(y[1]);
     0
 }

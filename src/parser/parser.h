@@ -22,7 +22,7 @@ public:
     IdentifierNode parseIdentifier();
 
     ExpressionNodeOwner parsePrimary();
-    VariableAccessNode parseVariableAccess();
+    VariableAccessNode parseVariableAccess(bool arrDecay);
     NumberNode parseNumber();
     ScopeNode parseScope();
     ArrayValueNode parseArrayValue();

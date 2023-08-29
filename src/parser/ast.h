@@ -43,6 +43,7 @@ struct VariableAccessNode {
     IdentifierNode mName;
     std::optional<ExpressionNodeOwner> mArrayIndex;
     std::optional<std::vector<ExpressionNodeOwner>> mCallArgs;
+    bool mArrayDecay;
 };
 
 struct NumberNode {
@@ -97,6 +98,7 @@ struct FunctionDefinitionNode {
     struct ArgType {
         Token mRawType;
         int mArraySize;
+        bool mIsArrayDecay;
     };
 
     IdentifierNode mName;

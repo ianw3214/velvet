@@ -18,6 +18,7 @@ enum class Token {
     FUNC_RETURN,
     VAR_DEF,
     ASSIGN,
+    ARRAY_DECAY,
 
     PLUS,
     MINUS,

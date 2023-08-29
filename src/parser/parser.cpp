@@ -26,6 +26,7 @@ std::vector<FunctionDefinitionNode>& Parser::parseAll() {
     return mTopLevelFunctions;
 }
 
+#pragma optimize("", off)
 /// ExpressionNode
 ///     ::= Primary
 ///     ::= BinaryOperation
@@ -65,13 +66,17 @@ IdentifierNode Parser::parseIdentifier() {
 ExpressionNodeOwner Parser::parsePrimary() {
     switch(mLexer.getCurrToken()) {
         case Token::ID: {
-            VariableAccessNode variable = parseVariableAccess();
+            VariableAccessNode variable = parseVariableAccess(false);
             if (mLexer.getCurrToken() == Token::ASSIGN) {
                 return std::make_unique<AssignmentNode>(parseAssignment(std::move(variable)));
             }
             else {
                 return std::make_unique<VariableAccessNode>(std::move(variable));
             }
+        } break;
+        case Token::ARRAY_DECAY: {
+            mLexer.consumeToken();
+            return std::make_unique<VariableAccessNode>(parseVariableAccess(true));
         } break;
         case Token::NUM: {
             return std::make_unique<NumberNode>(parseNumber());
@@ -102,7 +107,7 @@ ExpressionNodeOwner Parser::parsePrimary() {
 }
 
 /// VariableAccessNode ::= IdentifierNode ('[' ExpressionNode ']')?
-VariableAccessNode Parser::parseVariableAccess() {
+VariableAccessNode Parser::parseVariableAccess(bool arrDecay) {
     IdentifierNode identifier = parseIdentifier();
     // TODO: Need to figure out how to handle chained brackets (e.g. arrayVar[2][3][4])
     if (_checkAndConsumeToken(Token::LEFT_SQUARE_BRACKET)) {
@@ -122,9 +127,9 @@ VariableAccessNode Parser::parseVariableAccess() {
                 return VariableAccessNode{ identifier, std::nullopt, std::nullopt };
             }
         }
-        return VariableAccessNode{ identifier, std::nullopt, std::move(argExpressions) };
+        return VariableAccessNode{ identifier, std::nullopt, std::move(argExpressions), arrDecay };
     }
-    return VariableAccessNode{ identifier, std::nullopt, std::nullopt };
+    return VariableAccessNode{ identifier, std::nullopt, std::nullopt, arrDecay };
 }
 
 /// AssignmentNode ::= MemoryAccessNode = ExpressionNode
@@ -347,6 +352,7 @@ FunctionDefinitionNode Parser::parseFunctionDefinition() {
             mErrorHandler.logError("Expected ':' after argument name");
             return FunctionDefinitionNode{ identifier };
         }
+        bool isArrayDecay = _checkAndConsumeToken(Token::ARRAY_DECAY);
         // TODO: Maybe want to validate token is type token here as well
         if (_checkAndConsumeToken(Token::LEFT_SQUARE_BRACKET)) {
             Token typeInfo = mLexer.getCurrToken();
@@ -365,7 +371,7 @@ FunctionDefinitionNode Parser::parseFunctionDefinition() {
                 mErrorHandler.logError("Expected ']' to close out array parameter definition");
                 return FunctionDefinitionNode{ identifier };
             }
-            arguments.emplace_back(name, FunctionDefinitionNode::ArgType{ typeInfo, *arraySize });
+            arguments.emplace_back(name, FunctionDefinitionNode::ArgType{ typeInfo, *arraySize, isArrayDecay });
         }
         else {
             arguments.emplace_back(name, FunctionDefinitionNode::ArgType{ mLexer.getCurrToken(), -1});

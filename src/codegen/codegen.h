@@ -13,6 +13,12 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 
+struct VariableInfo {
+    llvm::AllocaInst* mAlloca;
+    Token mRawType;
+    bool mIsDecayedArray;
+};
+
 class CodeGenerator {
     std::unique_ptr<llvm::LLVMContext> mContext;
     std::unique_ptr<llvm::Module> mModule;
@@ -31,7 +37,7 @@ public:
 
     std::unique_ptr<llvm::Module>& getModule();
 private:
-    std::unordered_map<std::string, llvm::AllocaInst*> mNamedVariables;
+    std::unordered_map<std::string, VariableInfo> mNamedVariables;
     std::unordered_map<std::string, llvm::Function*> mFunctions;
     std::vector<std::pair<llvm::BasicBlock*, llvm::BasicBlock*>> mLoopStack;
 

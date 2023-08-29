@@ -42,6 +42,7 @@ namespace {
         { "else", Token::ELSE },
         { "loop", Token::LOOP },
         { "break", Token::BREAK },
+        { "arrdecay", Token::ARRAY_DECAY },
         // types
         { "i32", Token::TYPE_I32 },
         { "f32", Token::TYPE_F32 },
