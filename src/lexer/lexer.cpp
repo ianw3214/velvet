@@ -7,7 +7,8 @@ namespace {
         NONE,
         ID,
         NUM,
-        SYMBOL
+        SYMBOL,
+        COMMENT
     };
 
     inline bool _isAlphabet(char c) {
@@ -75,6 +76,9 @@ namespace {
         { "<", Token::LESS },
         { "<=", Token::LESS_EQUALS}
     };
+
+    constexpr char commentSymbol = '#';
+    constexpr char commentEnd = '\n';
 }
 
 Lexer::Lexer(std::string input) 
@@ -84,6 +88,9 @@ Lexer::Lexer(std::string input)
     LexType currLexType = LexType::NONE;
     std::string currToken = "";
     for (const char c : input) {
+        if (c == commentSymbol) {
+            currLexType = LexType::COMMENT;
+        }
         if (currLexType == LexType::NONE) {
             if (_isValidIdentifierStart(c)) {
                 currLexType = LexType::ID;
@@ -151,6 +158,11 @@ Lexer::Lexer(std::string input)
                 } else {
                     checkAndAddSingleToken(c);
                 }
+            }
+        }
+        else if (currLexType == LexType::COMMENT) {
+            if (c == '\n') {
+                currLexType = LexType::NONE;
             }
         }
     }
