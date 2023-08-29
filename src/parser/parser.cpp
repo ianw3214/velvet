@@ -339,7 +339,7 @@ FunctionDefinitionNode Parser::parseFunctionDefinition() {
         mErrorHandler.logError("Expected left parenthesis in function definition");
         return FunctionDefinitionNode { identifier };
     }
-    std::vector<std::pair<std::string, Token>> arguments;
+    std::vector<std::pair<std::string, FunctionDefinitionNode::ArgType>> arguments;
     while (mLexer.getCurrToken() == Token::ID) {
         std::string name = mLexer.getCurrTokenStr();
         mLexer.consumeToken();
@@ -348,9 +348,29 @@ FunctionDefinitionNode Parser::parseFunctionDefinition() {
             return FunctionDefinitionNode{ identifier };
         }
         // TODO: Maybe want to validate token is type token here as well
-        Token typeInfo = mLexer.getCurrToken();
-        mLexer.consumeToken();
-        arguments.emplace_back(name, typeInfo);
+        if (_checkAndConsumeToken(Token::LEFT_SQUARE_BRACKET)) {
+            Token typeInfo = mLexer.getCurrToken();
+            mLexer.consumeToken();
+            if (!_checkAndConsumeToken(Token::SEMICOLON)) {
+                mErrorHandler.logError("Expected ';' to separate array type and size");
+                return FunctionDefinitionNode{ identifier };
+            }
+            NumberNode number = parseNumber();
+            int* arraySize = std::get_if<int>(&number.mNumber);
+            if (!arraySize || *arraySize < 0) {
+                mErrorHandler.logError("Expected non-negative integer value for array size");
+                return FunctionDefinitionNode{ identifier };
+            }
+            if (!_checkAndConsumeToken(Token::RIGHT_SQUARE_BRACKET)) {
+                mErrorHandler.logError("Expected ']' to close out array parameter definition");
+                return FunctionDefinitionNode{ identifier };
+            }
+            arguments.emplace_back(name, FunctionDefinitionNode::ArgType{ typeInfo, *arraySize });
+        }
+        else {
+            arguments.emplace_back(name, FunctionDefinitionNode::ArgType{ mLexer.getCurrToken(), -1});
+            mLexer.consumeToken();
+        }
         if (mLexer.getCurrToken() == Token::COMMA) {
             mLexer.consumeToken();
             // Might want to validate that the next token is an identifier

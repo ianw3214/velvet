@@ -94,8 +94,13 @@ struct LoopNode {
 struct BreakNode {};
 
 struct FunctionDefinitionNode {
+    struct ArgType {
+        Token mRawType;
+        int mArraySize;
+    };
+
     IdentifierNode mName;
-    std::vector<std::pair<std::string, Token>> mArguments;
+    std::vector<std::pair<std::string, ArgType>> mArguments;
     Token mReturnType;
     ExpressionNodeOwner mExpression;
 };

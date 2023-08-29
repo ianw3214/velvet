@@ -22,6 +22,14 @@ namespace {
         return _isAlphabet(c) || (c >= 'a' && c <= 'z') || _isNumeric(c);
     }
 
+    inline bool _isValidIdentifierStart(char c) {
+        return _isAlphabet(c) || c == '_';
+    }
+
+    inline bool _isValidIdentifierChar(char c) {
+        return _isAlphaNumeric(c) || c == '_';
+    }
+
     inline bool _isUniqueSymbol(char c) {
         return c == '=' || c == '!' || c == '>' || c == '<';
     }
@@ -76,7 +84,7 @@ Lexer::Lexer(std::string input)
     std::string currToken = "";
     for (const char c : input) {
         if (currLexType == LexType::NONE) {
-            if (_isAlphabet(c)) {
+            if (_isValidIdentifierStart(c)) {
                 currLexType = LexType::ID;
                 currToken += c;
             }
@@ -92,7 +100,7 @@ Lexer::Lexer(std::string input)
             }
         }
         else if (currLexType == LexType::ID) {
-            if (_isAlphaNumeric(c)) {
+            if (_isValidIdentifierChar(c)) {
                 currToken += c;
             }
             else {

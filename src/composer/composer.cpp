@@ -76,7 +76,7 @@ void Composer::buildAllFiles() {
             if (mErrorHandler.hasError()) {
                 continue;
             }
-            modulePassManager.run(*generator.getModule().get(), moduleAnalysis);
+            // modulePassManager.run(*generator.getModule().get(), moduleAnalysis);
             // TODO: Print only via debug flag
             // funcIR->print(llvm::errs());
             generator.getModule()->print(llvm::errs(), nullptr);

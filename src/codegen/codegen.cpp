@@ -46,7 +46,7 @@ CodeGenerator::CodeGenerator(ErrorHandler& handler)
 void CodeGenerator::setupDefaultFunctions() {
     llvm::FunctionType* printfType = llvm::FunctionType::get(
         llvm::IntegerType::getInt32Ty(*mContext),
-        llvm::PointerType::get(llvm::Type::getInt8Ty(*mContext), 0));
+        llvm::PointerType::get(llvm::Type::getInt8Ty(*mContext), 0), true);
     mFunctions["printf"] = llvm::Function::Create(printfType, llvm::Function::ExternalLinkage, "printf", *mModule);
 }
 
@@ -95,7 +95,10 @@ llvm::Function* CodeGenerator::generateFunctionCode(FunctionDefinitionNode& func
     std::vector<llvm::Type*> argumentTypes = std::vector<llvm::Type*>();
     argumentTypes.reserve(functionDefinition.mArguments.size());
     for (auto& argument : functionDefinition.mArguments) {
-        llvm::Type* type = _getRawLLVMType(argument.second);
+        llvm::Type* type = _getRawLLVMType(argument.second.mRawType);
+        if (argument.second.mArraySize >= 0) {
+            type = llvm::ArrayType::get(type, argument.second.mArraySize);
+        }
         if (!type) {
             mErrorHandler.logError("Invalid type handled in function argument");
             return nullptr;
@@ -119,7 +122,10 @@ llvm::Function* CodeGenerator::generateFunctionCode(FunctionDefinitionNode& func
     for (auto& argument : func->args()) {
         const auto& argumentDefinition = functionDefinition.mArguments[index]; 
         argument.setName(argumentDefinition.first);
-        llvm::Type* type = _getRawLLVMType(argumentDefinition.second);
+        llvm::Type* type = _getRawLLVMType(argumentDefinition.second.mRawType);
+        if (argumentDefinition.second.mArraySize >= 0) {
+            type = llvm::ArrayType::get(type, argumentDefinition.second.mArraySize);
+        }
         llvm::AllocaInst* alloca = mBuilder->CreateAlloca(type, nullptr, argumentDefinition.first);
         mBuilder->CreateStore(&argument, alloca);
         mNamedVariables[argumentDefinition.first] = alloca;
@@ -171,8 +177,15 @@ llvm::Value* CodeGenerator::_generateVariableAccess(std::unique_ptr<VariableAcce
                     mErrorHandler.logError("Print statement should always have an argument");
                     return nullptr;
                 }
-                llvm::Value* formatString = mBuilder->CreateGlobalStringPtr("%d\n", "formatString");
+                llvm::Value* formatString = nullptr;
                 llvm::Value* value = generateExpressionCode(argExpressions.front());
+                if (value->getType()->isFloatTy()) {
+                    formatString = mBuilder->CreateGlobalStringPtr("%f\n", "formatStringf");
+                    // float needs to be promoted to a double to work with printf
+                    value = mBuilder->CreateFPExt(value, llvm::Type::getDoubleTy(*mContext));
+                } else {
+                    formatString = mBuilder->CreateGlobalStringPtr("%d\n", "formatStringd");
+                }
                 llvm::Value* printfArgs[] = { formatString, value };
                 return mBuilder->CreateCall(mFunctions["printf"], printfArgs, "calltmp");
             }
