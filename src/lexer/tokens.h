@@ -30,6 +30,8 @@ enum class Token {
     GREATER_EQUALS,
     LESS,
     LESS_EQUALS,
+    AND,
+    OR,
     // TODO: Boolean operators (and/or)
 
     IF,

@@ -23,7 +23,7 @@ CodeGenerator::CodeGenerator(ErrorHandler& handler)
     , mModule(std::make_unique<llvm::Module>("velvet", *mContext))
     , mBuilder(std::make_unique<llvm::IRBuilder<>>(*mContext)) 
     , mErrorHandler(handler)
-    , mNamedVariables()
+    , mSymbolStack()
     , mFunctions()
     , mLoopStack() 
 {
@@ -121,6 +121,7 @@ llvm::Function* CodeGenerator::generateFunctionCode(FunctionDefinitionNode& func
         mErrorHandler.logError("Could not generate function");
         return nullptr;
     }
+    _pushNewSymbolScope();
     llvm::BasicBlock* basicBlock = llvm::BasicBlock::Create(*mContext, "entry", func);
     mBuilder->SetInsertPoint(basicBlock);
     size_t index = 0;
@@ -138,10 +139,7 @@ llvm::Function* CodeGenerator::generateFunctionCode(FunctionDefinitionNode& func
         }
         llvm::AllocaInst* alloca = mBuilder->CreateAlloca(type, nullptr, argumentDefinition.first);
         mBuilder->CreateStore(&argument, alloca);
-        mNamedVariables[argumentDefinition.first] = { 
-            alloca, 
-            argumentDefinition.second.mRawType,
-            argumentDefinition.second.mIsArrayDecay };
+        _addSymbolData(argumentDefinition.first, alloca, argumentDefinition.second.mRawType, argumentDefinition.second.mIsArrayDecay);
         index++;
     }
     llvm::Value* returnValue = generateExpressionCode(functionDefinition.mExpression);
@@ -151,6 +149,7 @@ llvm::Function* CodeGenerator::generateFunctionCode(FunctionDefinitionNode& func
         return nullptr;
     }
     mBuilder->CreateRet(returnValue);
+    _popSymbolScope();
     llvm::verifyFunction(*func);
     mFunctions[functionDefinition.mName.mIdentifier] = func;
     return func;
@@ -162,13 +161,13 @@ std::unique_ptr<llvm::Module>& CodeGenerator::getModule() {
 
 llvm::Value* CodeGenerator::_generateVariableAccess(std::unique_ptr<VariableAccessNode>& varAccess) {
     const std::string& varName = varAccess->mName.mIdentifier;
-    auto it = mNamedVariables.find(varName);
-    if (it != mNamedVariables.end()) {
-        llvm::AllocaInst* alloca = it->second.mAlloca;
+    std::optional<VariableInfo*> symbolData = _getSymbolData(varName);
+    if (symbolData.has_value()) {
+        llvm::AllocaInst* alloca = symbolData.value()->mAlloca;
         if (varAccess->mArrayIndex.has_value()) {
-            if (it->second.mIsDecayedArray) {
+            if (symbolData.value()->mAlloca) {
                 llvm::Value* ptrAddr = mBuilder->CreateLoad(llvm::PointerType::getUnqual(*mContext), alloca, "ptrload");
-                llvm::Type* type = _getRawLLVMType(it->second.mRawType);
+                llvm::Type* type = _getRawLLVMType(symbolData.value()->mRawType);
                 ExpressionNodeOwner& expr = varAccess->mArrayIndex.value();
                 llvm::Value* indexExpr = generateExpressionCode(expr);
                 llvm::Value* elementPtr = mBuilder->CreateGEP(type, ptrAddr, { indexExpr });
@@ -262,10 +261,12 @@ llvm::Value* CodeGenerator::_generateNumber(std::unique_ptr<NumberNode>& number)
 }
 
 llvm::Value* CodeGenerator::_generateScope(std::unique_ptr<ScopeNode>& scope) {
+    _pushNewSymbolScope();
     llvm::Value* last = nullptr;
     for (ExpressionNodeOwner& expression : scope->mExpressionList) {
         last = generateExpressionCode(expression);
     }
+    _popSymbolScope();
     // TODO: Need to deal with return statements and such...
     return last;   
 }
@@ -328,8 +329,7 @@ llvm::Value* CodeGenerator::_generateConditional(std::unique_ptr<ConditionalNode
         mBuilder->SetInsertPoint(thenBlock);
         llvm::Value* _thenValue = generateExpressionCode(conditional->mThen);
         // If then block is a branch/return we want to not generate this
-        llvm::Instruction* last = thenBlock->getTerminator();
-        if (last && last->getOpcode() != llvm::Instruction::Br) {
+        if (!thenBlock->getTerminator()) {
             mBuilder->CreateBr(mergeBlock);
         }
         mBuilder->SetInsertPoint(mergeBlock);
@@ -436,6 +436,12 @@ llvm::Value* CodeGenerator::_generateBinaryOperation(std::unique_ptr<BinaryOpera
                 return mBuilder->CreateICmp(llvm::ICmpInst::ICMP_SLE, left, right, "leqtmp");
             }
         } break;
+        case Token::AND: {
+            return mBuilder->CreateAnd(left, right, "andtmp");
+        } break;
+        case Token::OR: {
+            return mBuilder->CreateOr(left, right, "ortmp");
+        } break;
         default: {
             mErrorHandler.logError("Unhandled binary operator");
         } break;
@@ -451,7 +457,7 @@ llvm::Value* CodeGenerator::_generateVariableDefinition(std::unique_ptr<Variable
         varType = llvm::ArrayType::get(varType, varDef->mArraySize);
     }
     llvm::AllocaInst* alloca = mBuilder->CreateAlloca(varType, nullptr, varName);
-    mNamedVariables[varName] = { alloca, varDef->mType, false };
+    _addSymbolData(varName, alloca, varDef->mType, false);
     if (varDef->mInitialValue.has_value()) {
         ExpressionNodeOwner& expr = varDef->mInitialValue.value();
         if (auto arrayValue = std::get_if<std::unique_ptr<ArrayValueNode>>(&expr)) {
@@ -471,13 +477,13 @@ llvm::Value* CodeGenerator::_generateAssignment(std::unique_ptr<AssignmentNode>&
     const std::string& varName = varAccess.mName.mIdentifier;
     llvm::Value* memLocation = nullptr;
     // shares a lot of code with VariableAccess, perhaps can refactor somehow
-    auto it = mNamedVariables.find(varName);
-    if (it != mNamedVariables.end()) {
-        llvm::AllocaInst* alloca = it->second.mAlloca;
+    std::optional<VariableInfo*> varInfo = _getSymbolData(varName);
+    if (varInfo.has_value()) {
+        llvm::AllocaInst* alloca = varInfo.value()->mAlloca;
         if (varAccess.mArrayIndex.has_value()) {
-            if (it->second.mIsDecayedArray) {
+            if (varInfo.value()->mIsDecayedArray) {
                 llvm::Value* ptrAddr = mBuilder->CreateLoad(llvm::PointerType::getUnqual(*mContext), alloca, "ptrload");
-                llvm::Type* type = _getRawLLVMType(it->second.mRawType);
+                llvm::Type* type = _getRawLLVMType(varInfo.value()->mRawType);
                 ExpressionNodeOwner& expr = varAccess.mArrayIndex.value();
                 llvm::Value* indexExpr = generateExpressionCode(expr);
                 memLocation = mBuilder->CreateGEP(type, ptrAddr, { indexExpr });
@@ -530,4 +536,29 @@ llvm::Value* CodeGenerator::_generateBreak(std::unique_ptr<BreakNode>& br) {
     }
     mBuilder->CreateBr(mLoopStack.back().second);
     return nullptr;
+}
+
+void CodeGenerator::_pushNewSymbolScope() {
+    mSymbolStack.emplace_back();
+}
+
+void CodeGenerator::_popSymbolScope() {
+    mSymbolStack.pop_back();
+}
+
+void CodeGenerator::_addSymbolData(const std::string& varName, llvm::AllocaInst* alloca, Token rawType, bool isDecayedArray) {
+    if (mSymbolStack.empty()) {
+        mErrorHandler.logError("No valid scope to add symbol data to");
+        return;
+    }
+    mSymbolStack.back()[varName] = { alloca, rawType, isDecayedArray };
+}
+
+std::optional<VariableInfo*> CodeGenerator::_getSymbolData(const std::string& symbol) {
+    for (int index = mSymbolStack.size() - 1; index >= 0; index--) {
+        if (mSymbolStack[index].find(symbol) != mSymbolStack[index].end()) {
+            return &mSymbolStack[index].at(symbol);
+        }
+    }
+    return std::nullopt;
 }

@@ -37,7 +37,8 @@ public:
 
     std::unique_ptr<llvm::Module>& getModule();
 private:
-    std::unordered_map<std::string, VariableInfo> mNamedVariables;
+    using SymbolTable = std::unordered_map<std::string, VariableInfo>;
+    std::vector<SymbolTable> mSymbolStack;
     std::unordered_map<std::string, llvm::Function*> mFunctions;
     std::vector<std::pair<llvm::BasicBlock*, llvm::BasicBlock*>> mLoopStack;
 
@@ -54,4 +55,10 @@ private:
 
     // special case codegen functions
     llvm::Value* _generateArrayValue(std::unique_ptr<ArrayValueNode>& arrayValue, llvm::AllocaInst* alloca);
+
+private:
+    void _pushNewSymbolScope();
+    void _popSymbolScope();
+    void _addSymbolData(const std::string& varName, llvm::AllocaInst* alloca, Token rawType, bool isDecayedArray);
+    std::optional<VariableInfo*> _getSymbolData(const std::string& symbol);
 };

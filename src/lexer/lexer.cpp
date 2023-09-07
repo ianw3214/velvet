@@ -32,7 +32,7 @@ namespace {
     }
 
     inline bool _isUniqueSymbol(char c) {
-        return c == '=' || c == '!' || c == '>' || c == '<';
+        return c == '=' || c == '!' || c == '>' || c == '<' || c == '&' || c == '|';
     }
 
     const std::unordered_map<std::string, Token> keywordMap = {
@@ -74,7 +74,9 @@ namespace {
         { ">", Token::GREATER },
         { ">=", Token::GREATER_EQUALS},
         { "<", Token::LESS },
-        { "<=", Token::LESS_EQUALS}
+        { "<=", Token::LESS_EQUALS},
+        { "&&", Token::AND },
+        { "||", Token::OR }
     };
 
     constexpr char commentSymbol = '#';

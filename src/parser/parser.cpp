@@ -13,7 +13,9 @@ namespace {
         { Token::PLUS, 5 },
         { Token::MINUS, 5 },
         { Token::MULTIPLY, 10 },
-        { Token::DIVIDE, 10 }
+        { Token::DIVIDE, 10 },
+        { Token::AND, -5 },
+        { Token::OR, -5 }
     };
 }
 
@@ -26,7 +28,6 @@ std::vector<FunctionDefinitionNode>& Parser::parseAll() {
     return mTopLevelFunctions;
 }
 
-#pragma optimize("", off)
 /// ExpressionNode
 ///     ::= Primary
 ///     ::= BinaryOperation

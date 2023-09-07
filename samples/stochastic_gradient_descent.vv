@@ -1,0 +1,65 @@
+def error(theta1 : f32, theta2 : f32, input : f32, output : f32) @ f32 {
+    theta1 + theta2 * input - output
+}
+
+def theta1_gradient(
+    x : arrdecay [f32; 10], 
+    y : arrdecay [f32; 10],
+    theta1 : f32,
+    theta2 : f32,
+    index : i32
+        ) @ f32 {
+    error(theta1, theta2, x[index], y[index])
+}
+
+def theta2_gradient(
+    x : arrdecay [f32; 10], 
+    y : arrdecay [f32; 10],
+    theta1 : f32,
+    theta2 : f32,
+    index : i32
+        ) @ f32 {
+    var inner : f32 = error(theta1, theta2, x[index], y[index]);
+    inner * x[index]
+}
+
+def total_error(
+    x : arrdecay [f32; 10], 
+    y : arrdecay [f32; 10],
+    theta1 : f32,
+    theta2 : f32
+        ) @ f32 {
+    var error_sum : f32 = 0.0;
+    var index : i32 = 0;
+    loop {
+        var partial_error : f32 = error(theta1, theta2, x[index], y[index]);
+        error_sum = error_sum + partial_error * partial_error;
+        index = index + 1;
+        if index >= 10 then break;
+    };
+    error_sum
+}
+
+def main() @ i32 {
+    # x/y are the sample input/output datasets
+    var x : [f32; 10] = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0];
+    var y : [f32; 10] = [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0];
+    var theta1 : f32 = 0.0;
+    var theta2 : f32 = 0.0;
+    var currError : f32 = total_error(arrdecay x, arrdecay y, theta1, theta2);
+    var currIndex : i32 = 0;
+    var learningRate : f32 = 0.1;
+    loop {
+        theta1 = theta1 - learningRate * theta1_gradient(arrdecay x, arrdecay y, theta1, theta2, currIndex);
+        theta2 = theta2 - learningRate * theta2_gradient(arrdecay x, arrdecay y, theta1, theta2, currIndex);
+        currError = total_error(arrdecay x, arrdecay y, theta1, theta2);
+        printf(currError);
+        if currError < 0.01 then break;
+        learningRate = learningRate * 0.95;
+        currIndex = currIndex + 1;
+        if currIndex >= 10 then currIndex = 0;
+    };
+    printf(theta1);
+    printf(theta2);
+    0
+}
