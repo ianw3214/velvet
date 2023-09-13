@@ -111,13 +111,16 @@ ExpressionNodeOwner Parser::parsePrimary() {
 VariableAccessNode Parser::parseVariableAccess(bool arrDecay) {
     IdentifierNode identifier = parseIdentifier();
     // TODO: Need to figure out how to handle chained brackets (e.g. arrayVar[2][3][4])
-    if (_checkAndConsumeToken(Token::LEFT_SQUARE_BRACKET)) {
-        ExpressionNodeOwner expression = parseExpression();
+    std::vector<ExpressionNodeOwner> arrayExpressions;
+    while (_checkAndConsumeToken(Token::LEFT_SQUARE_BRACKET)) {
+        arrayExpressions.emplace_back(parseExpression());
         if (!_checkAndConsumeToken(Token::RIGHT_SQUARE_BRACKET)) {
             mErrorHandler.logError("Expected ']' at the end of array access");
-            return VariableAccessNode{ identifier, std::move(expression), std::nullopt };
+            return VariableAccessNode{ identifier, std::move(arrayExpressions), std::nullopt };
         }
-        return VariableAccessNode{ identifier, std::move(expression), std::nullopt };
+    }
+    if (!arrayExpressions.empty()) {
+        return VariableAccessNode{ identifier, std::move(arrayExpressions), std::nullopt };
     }
     if (_checkAndConsumeToken(Token::LEFT_PARENTHESIS)) {
         std::vector<ExpressionNodeOwner> argExpressions;
@@ -304,33 +307,40 @@ VariableDefinitionNode Parser::parseVariableDefinition() {
         mLexer.consumeToken();
         if (!_checkAndConsumeToken(Token::SEMICOLON)) {
             mErrorHandler.logError("Expected ';' to separate array type and size");
-            return VariableDefinitionNode{ identifier, typeInfo, -1, std::nullopt };
+            return VariableDefinitionNode{ identifier, typeInfo, {}, std::nullopt };
         }
-        NumberNode number = parseNumber();
-        int* arraySize = std::get_if<int>(&number.mNumber);
-        if (!arraySize || *arraySize < 0) {
-            mErrorHandler.logError("Expected non-negative integer value for array size");
-            return VariableDefinitionNode{ identifier, typeInfo, -1, std::nullopt };
+        std::vector<size_t> arraySizes;
+        while (mLexer.getCurrToken() == Token::NUM) {
+            NumberNode number = parseNumber();
+            int* arraySize = std::get_if<int>(&number.mNumber);
+            if (!arraySize || *arraySize < 0) {
+                mErrorHandler.logError("Expected non-negative integer value for array size");
+                return VariableDefinitionNode{ identifier, typeInfo, {}, std::nullopt };
+            }
+            arraySizes.push_back(*arraySize);
+            if (!_checkAndConsumeToken(Token::COMMA)) {
+                break;  // if this is an error it will be caught outside the loop
+            }
         }
         if (!_checkAndConsumeToken(Token::RIGHT_SQUARE_BRACKET)) {
             mErrorHandler.logError("Expected ']' to end array type definition");
-            return VariableDefinitionNode{ identifier, typeInfo, *arraySize, std::nullopt };
+            return VariableDefinitionNode{ identifier, typeInfo, arraySizes, std::nullopt };
         }
         if (!_checkAndConsumeToken(Token::ASSIGN)) {
-            return VariableDefinitionNode{ identifier, typeInfo, *arraySize, std::nullopt };
+            return VariableDefinitionNode{ identifier, typeInfo, arraySizes, std::nullopt };
         }
         // TODO: Maybe check that this is an arrayValue node, or even parse it directly?
         ExpressionNodeOwner initialArrayValue = parseExpression();
-        return VariableDefinitionNode{ identifier, typeInfo, *arraySize, std::move(initialArrayValue) };
+        return VariableDefinitionNode{ identifier, typeInfo, arraySizes, std::move(initialArrayValue) };
     }
     else {
         Token typeInfo = mLexer.getCurrToken();
         mLexer.consumeToken();
         if (!_checkAndConsumeToken(Token::ASSIGN)) {
-            return VariableDefinitionNode{ identifier, typeInfo, -1, std::nullopt };
+            return VariableDefinitionNode{ identifier, typeInfo, {}, std::nullopt };
         }
         ExpressionNodeOwner initialValue = parseExpression();
-        return VariableDefinitionNode{ identifier, typeInfo, -1, std::move(initialValue) };
+        return VariableDefinitionNode{ identifier, typeInfo, {}, std::move(initialValue) };
     }
 }
 

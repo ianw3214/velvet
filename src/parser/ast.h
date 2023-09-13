@@ -41,7 +41,7 @@ using ExpressionNodeOwner = std::variant<
 
 struct VariableAccessNode {
     IdentifierNode mName;
-    std::optional<ExpressionNodeOwner> mArrayIndex;
+    std::optional<std::vector<ExpressionNodeOwner>> mArrayIndices;
     std::optional<std::vector<ExpressionNodeOwner>> mCallArgs;
     bool mArrayDecay;
 };
@@ -74,7 +74,7 @@ struct VariableDefinitionNode {
     IdentifierNode mName;
     // Should type be its own identifier?
     Token mType;
-    int mArraySize; // let -1 array size represent not an array type
+    std::vector<size_t> mArraySizes; // let empty sizes represent not array type
     std::optional<ExpressionNodeOwner> mInitialValue;
 };
 

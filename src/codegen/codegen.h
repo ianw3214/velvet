@@ -61,4 +61,6 @@ private:
     void _popSymbolScope();
     void _addSymbolData(const std::string& varName, llvm::AllocaInst* alloca, Token rawType, bool isDecayedArray);
     std::optional<VariableInfo*> _getSymbolData(const std::string& symbol);
+
+    llvm::Value* _getMemLocationFromVariableAccess(VariableAccessNode& varAccess);
 };

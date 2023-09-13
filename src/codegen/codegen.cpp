@@ -161,39 +161,23 @@ std::unique_ptr<llvm::Module>& CodeGenerator::getModule() {
 
 llvm::Value* CodeGenerator::_generateVariableAccess(std::unique_ptr<VariableAccessNode>& varAccess) {
     const std::string& varName = varAccess->mName.mIdentifier;
-    std::optional<VariableInfo*> symbolData = _getSymbolData(varName);
-    if (symbolData.has_value()) {
-        llvm::AllocaInst* alloca = symbolData.value()->mAlloca;
-        if (varAccess->mArrayIndex.has_value()) {
-            if (symbolData.value()->mAlloca) {
-                llvm::Value* ptrAddr = mBuilder->CreateLoad(llvm::PointerType::getUnqual(*mContext), alloca, "ptrload");
-                llvm::Type* type = _getRawLLVMType(symbolData.value()->mRawType);
-                ExpressionNodeOwner& expr = varAccess->mArrayIndex.value();
-                llvm::Value* indexExpr = generateExpressionCode(expr);
-                llvm::Value* elementPtr = mBuilder->CreateGEP(type, ptrAddr, { indexExpr });
-                return mBuilder->CreateLoad(type, elementPtr, varName.c_str());
-            }
-            else {
-                llvm::Type* type = alloca->getAllocatedType();
-                llvm::Type* elementType = type->getArrayElementType();
-                llvm::ConstantInt* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*mContext), 0);
-                ExpressionNodeOwner& expr = varAccess->mArrayIndex.value();
-                llvm::Value* indexExpr = generateExpressionCode(expr);
-                llvm::Value* indices[] = { zero, indexExpr };
-                llvm::Value* elementPtr = mBuilder->CreateGEP(type, alloca, indices);
-                // TODO: Handle if var access is used as lvalue
-                return mBuilder->CreateLoad(elementType, elementPtr, varName.c_str());
-            }
-        }
-        else {
-            if (varAccess->mArrayDecay) {
+    llvm::Value* memLocation = _getMemLocationFromVariableAccess(*varAccess.get());
+    if (memLocation) {
+        llvm::Type* elementType = _getRawLLVMType(_getSymbolData(varName).value()->mRawType);
+        // Handle special case of decaying an array to a pointer
+        //  - perhaps this would be better handled by a completely different type of "node"
+        if (varAccess->mArrayDecay) {
+            // TODO: Avoid extra work of finding symbol data twice, can do outside and pass to function
+            std::optional<VariableInfo*> symbolData = _getSymbolData(varName);
+            if (symbolData.has_value()) {
+                llvm::AllocaInst* alloca = symbolData.value()->mAlloca;
                 llvm::ConstantInt* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*mContext), 0);
                 llvm::Value* indices[] = { zero, zero };
                 return mBuilder->CreateGEP(alloca->getAllocatedType(), alloca, indices, "arrdecay");
             }
-            else {
-                return mBuilder->CreateLoad(alloca->getAllocatedType(), alloca, varName);
-            }
+        }
+        else {
+            return mBuilder->CreateLoad(elementType, memLocation, varName);
         }
     }
     auto funcIt = mFunctions.find(varName);
@@ -272,20 +256,28 @@ llvm::Value* CodeGenerator::_generateScope(std::unique_ptr<ScopeNode>& scope) {
 }
 
 llvm::Value* CodeGenerator::_generateArrayValue(std::unique_ptr<ArrayValueNode>& arrayValue, llvm::AllocaInst* alloca) {
-    int index = 0;
-    for (ExpressionNodeOwner& expr : arrayValue->mExpressionList) {
-        // TODO: This pattern seems to be used a lot, might want to refactor it out
-        llvm::Type* type = alloca->getAllocatedType();
-        llvm::Type* elementType = type->getArrayElementType();
-        llvm::ConstantInt* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*mContext), 0);
-        llvm::Value* indexExpr = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*mContext), index);
-        llvm::Value* indices[] = { zero, indexExpr };
-        llvm::Value* memLocation = mBuilder->CreateGEP(type, alloca, indices);
-
-        llvm::Value* valueExpr = generateExpressionCode(expr);
-        mBuilder->CreateStore(valueExpr, memLocation);
-        index++;
-    }
+    llvm::Type* type = alloca->getAllocatedType();
+    llvm::Type* elementType = type->getArrayElementType();
+    llvm::ConstantInt* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*mContext), 0);
+    std::vector<llvm::Value*> indexStack = { zero };
+    std::function<void(std::unique_ptr<ArrayValueNode>&)> visitArrayExpressions = [&indexStack, &visitArrayExpressions, this, type, alloca](std::unique_ptr<ArrayValueNode>& arrayValue) {
+        int index = 0;
+        for (ExpressionNodeOwner& expr : arrayValue->mExpressionList) {
+            llvm::Value* indexExpr = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*mContext), index);
+            indexStack.push_back(indexExpr);
+            if (auto subArrayValue = std::get_if<std::unique_ptr<ArrayValueNode>>(&expr)) {
+                visitArrayExpressions(*subArrayValue);
+            }
+            else {
+                llvm::Value* memLocation = mBuilder->CreateGEP(type, alloca, indexStack);
+                llvm::Value* valueExpr = generateExpressionCode(expr);
+                mBuilder->CreateStore(valueExpr, memLocation);
+            }
+            indexStack.pop_back();
+            index++;
+        }
+    };
+    visitArrayExpressions(arrayValue);
     // we don't actually need to return a value since we should already be assigning to the alloca
     return nullptr;
 }
@@ -453,8 +445,10 @@ llvm::Value* CodeGenerator::_generateVariableDefinition(std::unique_ptr<Variable
     llvm::Function* parentFunc = mBuilder->GetInsertBlock()->getParent();
     const std::string& varName = varDef->mName.mIdentifier;
     llvm::Type* varType = _getRawLLVMType(varDef->mType);
-    if (varDef->mArraySize >= 0) {
-        varType = llvm::ArrayType::get(varType, varDef->mArraySize);
+    if (!varDef->mArraySizes.empty()) {
+        for (size_t arrSize : varDef->mArraySizes) {
+            varType = llvm::ArrayType::get(varType, arrSize);
+        }
     }
     llvm::AllocaInst* alloca = mBuilder->CreateAlloca(varType, nullptr, varName);
     _addSymbolData(varName, alloca, varDef->mType, false);
@@ -474,34 +468,7 @@ llvm::Value* CodeGenerator::_generateVariableDefinition(std::unique_ptr<Variable
 
 llvm::Value* CodeGenerator::_generateAssignment(std::unique_ptr<AssignmentNode>& assignment) {
     VariableAccessNode& varAccess = assignment->mVariable.mVariable;
-    const std::string& varName = varAccess.mName.mIdentifier;
-    llvm::Value* memLocation = nullptr;
-    // shares a lot of code with VariableAccess, perhaps can refactor somehow
-    std::optional<VariableInfo*> varInfo = _getSymbolData(varName);
-    if (varInfo.has_value()) {
-        llvm::AllocaInst* alloca = varInfo.value()->mAlloca;
-        if (varAccess.mArrayIndex.has_value()) {
-            if (varInfo.value()->mIsDecayedArray) {
-                llvm::Value* ptrAddr = mBuilder->CreateLoad(llvm::PointerType::getUnqual(*mContext), alloca, "ptrload");
-                llvm::Type* type = _getRawLLVMType(varInfo.value()->mRawType);
-                ExpressionNodeOwner& expr = varAccess.mArrayIndex.value();
-                llvm::Value* indexExpr = generateExpressionCode(expr);
-                memLocation = mBuilder->CreateGEP(type, ptrAddr, { indexExpr });
-            }
-            else {
-                llvm::Type* type = alloca->getAllocatedType();
-                llvm::Type* elementType = type->getArrayElementType();
-                llvm::ConstantInt* zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*mContext), 0);
-                ExpressionNodeOwner& expr = varAccess.mArrayIndex.value();
-                llvm::Value* indexExpr = generateExpressionCode(expr);
-                llvm::Value* indices[] = { zero, indexExpr };
-                memLocation = mBuilder->CreateGEP(type, alloca, indices);
-            }
-        }
-        else {
-            memLocation = alloca;
-        }
-    }
+    llvm::Value* memLocation = _getMemLocationFromVariableAccess(varAccess);
     if (!memLocation) {
         mErrorHandler.logError("No memory location found for assignment");
         return nullptr;
@@ -561,4 +528,36 @@ std::optional<VariableInfo*> CodeGenerator::_getSymbolData(const std::string& sy
         }
     }
     return std::nullopt;
+}
+
+llvm::Value* CodeGenerator::_getMemLocationFromVariableAccess(VariableAccessNode& varAccess) {
+    const std::string& varName = varAccess.mName.mIdentifier;
+    llvm::Value* memLocation = nullptr;
+    // shares a lot of code with VariableAccess, perhaps can refactor somehow
+    std::optional<VariableInfo*> varInfo = _getSymbolData(varName);
+    if (varInfo.has_value()) {
+        llvm::AllocaInst* alloca = varInfo.value()->mAlloca;
+        llvm::Type* elementType = _getRawLLVMType(varInfo.value()->mRawType);
+        if (varAccess.mArrayIndices.has_value()) {
+            std::vector<llvm::Value*> indexStack;
+            llvm::Value* memAddr = alloca;
+            llvm::Type* addrType = alloca->getAllocatedType();
+            if (varInfo.value()->mIsDecayedArray) {
+                addrType = elementType;
+                memAddr = mBuilder->CreateLoad(llvm::PointerType::getUnqual(*mContext), alloca, "ptrload");
+            }
+            else {
+                indexStack.push_back(llvm::ConstantInt::get(llvm::Type::getInt32Ty(*mContext), 0));
+            }
+            for (ExpressionNodeOwner& expr : varAccess.mArrayIndices.value()) {
+                llvm::Value* indexExpr = generateExpressionCode(expr);
+                indexStack.push_back(indexExpr);
+            }
+            return mBuilder->CreateGEP(addrType, memAddr, indexStack);
+        }
+        else {
+            return alloca;
+        }
+    }
+    return nullptr;
 }
