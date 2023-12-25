@@ -96,12 +96,15 @@ llvm::Function* CodeGenerator::generateFunctionCode(FunctionDefinitionNode& func
     argumentTypes.reserve(functionDefinition.mArguments.size());
     for (auto& argument : functionDefinition.mArguments) {
         llvm::Type* type = _getRawLLVMType(argument.second.mRawType);
-        if (argument.second.mArraySize >= 0) {
+        if (!argument.second.mArraySizes.empty()) {
+            // If the array is decayed, we don't care about how many "layers" since ptr is unqualified
             if (argument.second.mIsArrayDecay) {
                 type = llvm::PointerType::getUnqual(*mContext);
             }
             else {
-                type = llvm::ArrayType::get(type, argument.second.mArraySize);
+                for (size_t arrSize : argument.second.mArraySizes) {
+                    type = llvm::ArrayType::get(type, arrSize);
+                }
             }
         }
         if (!type) {
@@ -128,13 +131,16 @@ llvm::Function* CodeGenerator::generateFunctionCode(FunctionDefinitionNode& func
     for (auto& argument : func->args()) {
         const auto& argumentDefinition = functionDefinition.mArguments[index]; 
         argument.setName(argumentDefinition.first);
+        // TODO: Is there a way to share code with loop above?
         llvm::Type* type = _getRawLLVMType(argumentDefinition.second.mRawType);
-        if (argumentDefinition.second.mArraySize >= 0) {
+        if (!argumentDefinition.second.mArraySizes.empty()) {
             if (argumentDefinition.second.mIsArrayDecay) {
                 type = llvm::PointerType::getUnqual(*mContext);
             }
             else {
-                type = llvm::ArrayType::get(type, argumentDefinition.second.mArraySize);
+                for (size_t arrSize : argumentDefinition.second.mArraySizes) {
+                    type = llvm::ArrayType::get(type, arrSize);
+                }
             }
         }
         llvm::AllocaInst* alloca = mBuilder->CreateAlloca(type, nullptr, argumentDefinition.first);
@@ -538,6 +544,8 @@ llvm::Value* CodeGenerator::_getMemLocationFromVariableAccess(VariableAccessNode
     if (varInfo.has_value()) {
         llvm::AllocaInst* alloca = varInfo.value()->mAlloca;
         llvm::Type* elementType = _getRawLLVMType(varInfo.value()->mRawType);
+        // TODO: Need to handle array access differently for direct array access vs array ptr decay
+        //  - For ptr decay, need to do individual GEPs one by one
         if (varAccess.mArrayIndices.has_value()) {
             std::vector<llvm::Value*> indexStack;
             llvm::Value* memAddr = alloca;

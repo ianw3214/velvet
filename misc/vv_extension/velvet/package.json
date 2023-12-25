@@ -1,0 +1,36 @@
+{
+  "name": "velvet",
+  "displayName": "velvet",
+  "description": "velvet language support",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "*"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "velvet",
+      "aliases": ["Velvet", "velvet"],
+      "extensions": [".vv"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "velvet",
+      "scopeName": "source.velvet",
+      "path": "./syntaxes/velvet.tmLanguage.json"
+    }],
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/ianw3214/velvet"
+    },
+		"themes": [
+			{
+				"label": "[Velvet] Dark Theme",
+				"uiTheme": "vs-dark",
+				"path": "./themes/velvet.json"
+			}
+		]
+  }
+}

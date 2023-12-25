@@ -372,20 +372,27 @@ FunctionDefinitionNode Parser::parseFunctionDefinition() {
                 mErrorHandler.logError("Expected ';' to separate array type and size");
                 return FunctionDefinitionNode{ identifier };
             }
-            NumberNode number = parseNumber();
-            int* arraySize = std::get_if<int>(&number.mNumber);
-            if (!arraySize || *arraySize < 0) {
-                mErrorHandler.logError("Expected non-negative integer value for array size");
-                return FunctionDefinitionNode{ identifier };
+            std::vector<size_t> arraySizes;
+            while (mLexer.getCurrToken() == Token::NUM) {
+                NumberNode number = parseNumber();
+                int* arraySize = std::get_if<int>(&number.mNumber);
+                if (!arraySize || *arraySize < 0) {
+                    mErrorHandler.logError("Expected non-negative integer value for array size");
+                    return FunctionDefinitionNode{ identifier };
+                }
+                arraySizes.push_back(*arraySize);
+                if (!_checkAndConsumeToken(Token::COMMA)) {
+                    break;  // if this is an error it will be caught outside the loop
+                }
             }
             if (!_checkAndConsumeToken(Token::RIGHT_SQUARE_BRACKET)) {
-                mErrorHandler.logError("Expected ']' to close out array parameter definition");
+                mErrorHandler.logError("Expected ']' to end array type definition for parameter");
                 return FunctionDefinitionNode{ identifier };
             }
-            arguments.emplace_back(name, FunctionDefinitionNode::ArgType{ typeInfo, *arraySize, isArrayDecay });
+            arguments.emplace_back(name, FunctionDefinitionNode::ArgType{ typeInfo, arraySizes, isArrayDecay });
         }
         else {
-            arguments.emplace_back(name, FunctionDefinitionNode::ArgType{ mLexer.getCurrToken(), -1});
+            arguments.emplace_back(name, FunctionDefinitionNode::ArgType{ mLexer.getCurrToken()});
             mLexer.consumeToken();
         }
         if (mLexer.getCurrToken() == Token::COMMA) {

@@ -13,6 +13,7 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 
+// TODO: Maybe look to move this to a common struct to share with parser?
 struct VariableInfo {
     llvm::AllocaInst* mAlloca;
     Token mRawType;

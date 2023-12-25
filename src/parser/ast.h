@@ -95,10 +95,12 @@ struct LoopNode {
 struct BreakNode {};
 
 struct FunctionDefinitionNode {
+    // TODO: Maybe want to share this with VariableDefinitionNode?
+    //  - the type parsing could then be factored out as well
     struct ArgType {
         Token mRawType;
-        int mArraySize;
-        bool mIsArrayDecay;
+        std::vector<size_t> mArraySizes = {}; // let empty sizes represent not array type
+        bool mIsArrayDecay = false;
     };
 
     IdentifierNode mName;

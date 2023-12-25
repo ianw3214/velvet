@@ -1,0 +1,55 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "Velvet",
+	"patterns": [
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#types"
+		},
+		{
+			"include": "#strings"
+		},
+		{
+			"include": "#comments"
+		},
+		{
+			"include": "#operators"
+		}
+	],
+	"repository": {
+		"keywords": {
+			"patterns": [{
+				"name": "keyword.control.velvet",
+				"match": "\\b(if|then|else|loop|break|arrdecay|return|def|var)\\b"
+			}]
+		},
+		"types": {
+			"patterns": [{
+				"name": "entity.name.type.velvet",
+				"match": "\\b(f32|i32|bool)\\b"
+			}]
+		},
+		"strings": {
+			"name": "string.quoted.double.velvet",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.velvet",
+					"match": "\\\\."
+				}
+			]
+		},
+		"comments": {
+			"name" : "comment.velvet",
+			"match" : "#.*$"
+		},
+		"operators": {
+			"name" : "keyword.operator.velvet",
+			"match" : "\\b(=|==|!=|>|>=|<|<=|&&|\\|\\|)\\b"
+		}
+	},
+	"scopeName": "source.velvet"
+}
