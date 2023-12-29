@@ -133,6 +133,8 @@ llvm::Function* CodeGenerator::generateFunctionCode(FunctionDefinitionNode& func
         argument.setName(argumentDefinition.first);
         // TODO: Is there a way to share code with loop above?
         llvm::Type* type = _getRawLLVMType(argumentDefinition.second.mRawType);
+        std::vector<size_t> arraySize;
+        // TODO: If the argument is an array, it should always be 'arrdecay' -> then the alloca should just be a ptr?
         if (!argumentDefinition.second.mArraySizes.empty()) {
             if (argumentDefinition.second.mIsArrayDecay) {
                 type = llvm::PointerType::getUnqual(*mContext);
@@ -140,12 +142,13 @@ llvm::Function* CodeGenerator::generateFunctionCode(FunctionDefinitionNode& func
             else {
                 for (size_t arrSize : argumentDefinition.second.mArraySizes) {
                     type = llvm::ArrayType::get(type, arrSize);
+                    arraySize.emplace_back(arrSize);
                 }
             }
         }
         llvm::AllocaInst* alloca = mBuilder->CreateAlloca(type, nullptr, argumentDefinition.first);
         mBuilder->CreateStore(&argument, alloca);
-        _addSymbolData(argumentDefinition.first, alloca, argumentDefinition.second.mRawType, argumentDefinition.second.mIsArrayDecay);
+        _addSymbolData(argumentDefinition.first, alloca, argumentDefinition.second.mRawType, argumentDefinition.second.mIsArrayDecay, arraySize);
         index++;
     }
     llvm::Value* returnValue = generateExpressionCode(functionDefinition.mExpression);
@@ -457,7 +460,7 @@ llvm::Value* CodeGenerator::_generateVariableDefinition(std::unique_ptr<Variable
         }
     }
     llvm::AllocaInst* alloca = mBuilder->CreateAlloca(varType, nullptr, varName);
-    _addSymbolData(varName, alloca, varDef->mType, false);
+    _addSymbolData(varName, alloca, varDef->mType, false, varDef->mArraySizes);
     if (varDef->mInitialValue.has_value()) {
         ExpressionNodeOwner& expr = varDef->mInitialValue.value();
         if (auto arrayValue = std::get_if<std::unique_ptr<ArrayValueNode>>(&expr)) {
@@ -519,12 +522,12 @@ void CodeGenerator::_popSymbolScope() {
     mSymbolStack.pop_back();
 }
 
-void CodeGenerator::_addSymbolData(const std::string& varName, llvm::AllocaInst* alloca, Token rawType, bool isDecayedArray) {
+void CodeGenerator::_addSymbolData(const std::string& varName, llvm::AllocaInst* alloca, Token rawType, bool isDecayedArray, std::vector<size_t> arraySize) {
     if (mSymbolStack.empty()) {
         mErrorHandler.logError("No valid scope to add symbol data to");
         return;
     }
-    mSymbolStack.back()[varName] = { alloca, rawType, isDecayedArray };
+    mSymbolStack.back()[varName] = { alloca, rawType, isDecayedArray, arraySize };
 }
 
 std::optional<VariableInfo*> CodeGenerator::_getSymbolData(const std::string& symbol) {
@@ -544,24 +547,33 @@ llvm::Value* CodeGenerator::_getMemLocationFromVariableAccess(VariableAccessNode
     if (varInfo.has_value()) {
         llvm::AllocaInst* alloca = varInfo.value()->mAlloca;
         llvm::Type* elementType = _getRawLLVMType(varInfo.value()->mRawType);
-        // TODO: Need to handle array access differently for direct array access vs array ptr decay
-        //  - For ptr decay, need to do individual GEPs one by one
         if (varAccess.mArrayIndices.has_value()) {
             std::vector<llvm::Value*> indexStack;
-            llvm::Value* memAddr = alloca;
             llvm::Type* addrType = alloca->getAllocatedType();
+            // If the ptr is decayed, ptr type is opaque and GEP needs to be done one by one
             if (varInfo.value()->mIsDecayedArray) {
                 addrType = elementType;
-                memAddr = mBuilder->CreateLoad(llvm::PointerType::getUnqual(*mContext), alloca, "ptrload");
+                llvm::Value* memAddr = mBuilder->CreateLoad(llvm::PointerType::getUnqual(*mContext), alloca, "ptrload");  // (ORIGINAL CODE)
+                size_t count = 0;
+                // TODO: Working on this - need to fix the GEP instructions
+                //  - may have to modify symbol table data to store array size data so it can be accessed in the GEP instructions
+                //  - this seems to somehow be working right now... maybe leave it for now, revisit when it's broken again...
+                for (ExpressionNodeOwner& expr : varAccess.mArrayIndices.value()) {
+                    llvm::Value* indexExpr = generateExpressionCode(expr);
+                    llvm::Type* type = (++count >= varAccess.mArrayIndices.value().size()) ? addrType : llvm::PointerType::getUnqual(*mContext);
+                    memAddr = mBuilder->CreateGEP(type, memAddr, { indexExpr }, "arrayidx");
+                }
+                return memAddr;
             }
+            // Otherwise if normal array type, can use all indices directly in GEP instruction
             else {
                 indexStack.push_back(llvm::ConstantInt::get(llvm::Type::getInt32Ty(*mContext), 0));
+                for (ExpressionNodeOwner& expr : varAccess.mArrayIndices.value()) {
+                    llvm::Value* indexExpr = generateExpressionCode(expr);
+                    indexStack.push_back(indexExpr);
+                }
+                return mBuilder->CreateGEP(addrType, alloca, indexStack);
             }
-            for (ExpressionNodeOwner& expr : varAccess.mArrayIndices.value()) {
-                llvm::Value* indexExpr = generateExpressionCode(expr);
-                indexStack.push_back(indexExpr);
-            }
-            return mBuilder->CreateGEP(addrType, memAddr, indexStack);
         }
         else {
             return alloca;

@@ -18,6 +18,7 @@ struct VariableInfo {
     llvm::AllocaInst* mAlloca;
     Token mRawType;
     bool mIsDecayedArray;
+    std::vector<size_t> mArraySize;
 };
 
 class CodeGenerator {
@@ -60,7 +61,7 @@ private:
 private:
     void _pushNewSymbolScope();
     void _popSymbolScope();
-    void _addSymbolData(const std::string& varName, llvm::AllocaInst* alloca, Token rawType, bool isDecayedArray);
+    void _addSymbolData(const std::string& varName, llvm::AllocaInst* alloca, Token rawType, bool isDecayedArray, std::vector<size_t> arraySize);
     std::optional<VariableInfo*> _getSymbolData(const std::string& symbol);
 
     llvm::Value* _getMemLocationFromVariableAccess(VariableAccessNode& varAccess);

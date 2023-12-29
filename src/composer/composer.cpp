@@ -12,6 +12,7 @@
 #include "llvm/Analysis/LoopAnalysisManager.h"
 #include "llvm/Analysis/CGSCCPassManager.h"
 #include "llvm/IR/PassManager.h"
+#include "llvm/IR/Verifier.h"
 #include "llvm/Passes/PassBuilder.h"
 
 //////////////////////////////////////////////////////////////
@@ -80,6 +81,9 @@ void Composer::buildAllFiles() {
             // TODO: Print only via debug flag
             // funcIR->print(llvm::errs());
             generator.getModule()->print(llvm::errs(), nullptr);
+            if (llvm::verifyModule(*generator.getModule().get(), &llvm::errs())) {
+                // TODO: Handle verification failed
+            }
 
             // object file output---------------
             TargetBuilder builder;
